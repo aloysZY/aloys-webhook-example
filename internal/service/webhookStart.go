@@ -1,4 +1,4 @@
-package root
+package service
 
 import (
 	"fmt"
@@ -15,26 +15,26 @@ func WebhookStart(configs api.Configs) *http.Server {
 	webhook := http.NewServeMux()
 	// 简单的http服务器，可以使用gin
 	webhook.HandleFunc("/always-allow-delay-5s", handlefunc.WithMetrics(handlefunc.ServeAlwaysAllowDelayFiveSeconds))
-	webhook.HandleFunc("/always-deny", handlefunc.ServeAlwaysDeny)
-	webhook.HandleFunc("/add-label", handlefunc.ServeAddLabel)
-	webhook.HandleFunc("/pods", handlefunc.ServePods)
-	webhook.HandleFunc("/pods/attach", handlefunc.ServeAttachingPods)
-	webhook.HandleFunc("/mutating-pods", handlefunc.ServeMutatePods)
-	webhook.HandleFunc("/mutating-pods-sidecar", handlefunc.ServeMutatePodsSidecar)
-	webhook.HandleFunc("/configmaps", handlefunc.ServeConfigmaps)
-	webhook.HandleFunc("/mutating-configmaps", handlefunc.ServeMutateConfigmaps)
-	webhook.HandleFunc("/custom-resource", handlefunc.ServeCustomResource)
-	webhook.HandleFunc("/mutating-custom-resource", handlefunc.ServeMutateCustomResource)
-	webhook.HandleFunc("/crd", handlefunc.ServeCRD)
-	webhook.HandleFunc("/validating-pod-container-limit", handlefunc.ServeValidatePodContainerLimit)
-	webhook.HandleFunc("/mutating-node-oversold", handlefunc.ServeMutateNodeOversold)
+	webhook.HandleFunc("/always-deny", handlefunc.WithMetrics(handlefunc.ServeAlwaysDeny))
+	webhook.HandleFunc("/add-label", handlefunc.WithMetrics(handlefunc.ServeAddLabel))
+	webhook.HandleFunc("/pods", handlefunc.WithMetrics(handlefunc.ServePods))
+	webhook.HandleFunc("/pods/attach", handlefunc.WithMetrics(handlefunc.ServeAttachingPods))
+	webhook.HandleFunc("/mutating-pods", handlefunc.WithMetrics(handlefunc.ServeMutatePods))
+	webhook.HandleFunc("/mutating-pods-sidecar", handlefunc.WithMetrics(handlefunc.ServeMutatePodsSidecar))
+	webhook.HandleFunc("/configmaps", handlefunc.WithMetrics(handlefunc.ServeConfigmaps))
+	webhook.HandleFunc("/mutating-configmaps", handlefunc.WithMetrics(handlefunc.ServeMutateConfigmaps))
+	webhook.HandleFunc("/custom-resource", handlefunc.WithMetrics(handlefunc.ServeCustomResource))
+	webhook.HandleFunc("/mutating-custom-resource", handlefunc.WithMetrics(handlefunc.ServeMutateCustomResource))
+	webhook.HandleFunc("/crd", handlefunc.WithMetrics(handlefunc.ServeCRD))
+	webhook.HandleFunc("/validating-pod-container-limit", handlefunc.WithMetrics(handlefunc.ServeValidatePodContainerLimit))
+	webhook.HandleFunc("/mutating-node-oversold", handlefunc.WithMetrics(handlefunc.ServeMutateNodeOversold))
 	webhook.HandleFunc("/readyz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
 	webhook.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
 
 	// 服务启动端口和证书配置
 	webhookServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", api.AppPort),
-		TLSConfig:      api.ConfigTLS(configs),
+		Addr: fmt.Sprintf(":%d", api.WebhookPort),
+		// TLSConfig:      api.ConfigTLS(configs),
 		Handler:        webhook,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
@@ -43,11 +43,15 @@ func WebhookStart(configs api.Configs) *http.Server {
 	}
 	// 开启go 启动服务
 	go func() {
-		if err := webhookServer.ListenAndServeTLS("", ""); err != nil {
+		// if err := webhookServer.ListenAndServeTLS("", ""); err != nil {
+		// 	klog.Errorf("Failed to listen and serve webhook-template server: %v", err)
+		// 	panic(err)
+		// }
+		if err := webhookServer.ListenAndServe(); err != nil {
 			klog.Errorf("Failed to listen and serve webhook-template server: %v", err)
 			panic(err)
 		}
 	}()
-	klog.Info("Webhook server started on port：", api.AppPort)
+	klog.Info("Webhook server started on port：", api.WebhookPort)
 	return webhookServer
 }

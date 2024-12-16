@@ -1,4 +1,4 @@
-package root
+package service
 
 import (
 	"fmt"
@@ -16,9 +16,9 @@ func MetricsStart(configs api.Configs) *http.Server {
 	metricsMux := http.NewServeMux()
 	metricsMux.Handle("/metrics", promhttp.Handler())
 	metricsServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", api.MetricsPort),
-		Handler:        metricsMux,
-		TLSConfig:      api.ConfigTLS(configs),
+		Addr:    fmt.Sprintf(":%d", api.MetricsPort),
+		Handler: metricsMux,
+		// TLSConfig:      api.ConfigTLS(configs),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
 		IdleTimeout:    60 * time.Second,

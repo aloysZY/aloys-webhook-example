@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-test-pod
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx:latest
+      resources:
+        limits:
+          cpu: "7" # 6 cores
+          memory: "8Gi" # 8 GiB

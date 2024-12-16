@@ -1,0 +1,76 @@
+/*
+Copyright 2018 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controller
+
+import (
+	"encoding/json"
+
+	"github.com/aloys.zy/aloys-webhook-example/api"
+	"k8s.io/api/admission/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
+)
+
+const (
+	addFirstLabelPatch string = `[
+         { "op": "add", "path": "/metadata/labels", "value": {"added-label": "yes"}}
+     ]`
+	addAdditionalLabelPatch string = `[
+         { "op": "add", "path": "/metadata/labels/added-label", "value": "yes" }
+     ]`
+	updateLabelPatch string = `[
+         { "op": "replace", "path": "/metadata/labels/added-label", "value": "yes" }
+     ]`
+)
+
+// AddLabel Add a label {"added-label": "yes"} to the object
+func AddLabel(ar v1.AdmissionReview) *v1.AdmissionResponse {
+	klog.V(2).Info("calling add-label")
+	obj := struct {
+		metav1.ObjectMeta `json:"metadata,omitempty"`
+	}{}
+	// ar 是一个 v1.AdmissionReview 类型的对象，它代表了来自Kubernetes API服务器的准入审查请求。ar.Request.Object.Raw 是一个包含请求对象原始JSON字节切片的字段。这意味着它包含了未经处理的、原始的JSON格式的数据，这些数据描述了用户尝试创建或更新的Kubernetes资源对象。
+	raw := ar.Request.Object.Raw
+	// json.Unmarshal 函数用于将JSON编码的数据转换为Go语言的值。在这里，我们使用它来将 raw 中的原始JSON数据反序列化到之前定义的 obj 结构体中，就是将请求的json转化为结构体
+	err := json.Unmarshal(raw, &obj)
+	if err != nil {
+		klog.Error(err)
+		// 返回错误
+		return api.ToV1AdmissionResponse(err)
+	}
+	// 这里使用了 v1.AdmissionResponse{} 来创建一个空的 AdmissionResponse 结构体实例。v1 是指Kubernetes API的版本，在这里是 admission.k8s.io/v1。
+	// AdmissionResponse 用来告诉API服务器是否允许或拒绝传入的请求，以及在某些情况下如何修改请求对象。
+	reviewResponse := v1.AdmissionResponse{}
+	reviewResponse.Allowed = true
+
+	// 1.PatchTypeJSONPatch 指定了将要使用的补丁类型为JSON Patch。JSON Patch是一种用于对JSON文档进行增量修改的标准格式。这里使用的是RFC 6902定义的JSON Patch。
+	pt := v1.PatchTypeJSONPatch
+	labelValue, hasLabel := obj.ObjectMeta.Labels["added-label"]
+	switch {
+	case len(obj.ObjectMeta.Labels) == 0:
+		reviewResponse.Patch = []byte(addFirstLabelPatch)
+	case !hasLabel:
+		reviewResponse.Patch = []byte(addAdditionalLabelPatch)
+	case labelValue != "yes":
+		reviewResponse.Patch = []byte(updateLabelPatch)
+	default:
+		// already set
+	}
+	// 设置补丁类型为 JSON Patch，适用于所有情况
+	reviewResponse.PatchType = &pt
+	return &reviewResponse
+}

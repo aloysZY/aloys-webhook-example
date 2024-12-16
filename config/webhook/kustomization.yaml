@@ -1,0 +1,9 @@
+resources:
+#- manifests.yaml
+- service.yaml
+#新增规则进行追加
+- node-oversold.yaml
+
+configurations:
+- kustomizeconfig.yaml
+
