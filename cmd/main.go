@@ -18,17 +18,17 @@ package main
 
 import (
 	"context"
-	goflags "flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/service"
 	"github.com/spf13/cobra"
-
-	"k8s.io/klog/v2"
+	// "k8s.io/log/v2"
 	// TODO: try this library to see if it generates correct json patch
 	// https://github.com/mattbaird/jsonpatch
 )
@@ -42,6 +42,8 @@ After deploying it to Kubernetes cluster, the Administrator needs to create a Va
 in the Kubernetes cluster to register remote webhook-template admission controllers.`,
 	Args: cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
+
+		sugaredLogger := logger.WithName("main.CmdWebhook")
 		// 加载证书
 		configs := api.Configs{
 			CertFile: api.CertFile,
@@ -56,7 +58,7 @@ in the Kubernetes cluster to register remote webhook-template admission controll
 		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 		// 接收到 os shutdown signal 后，关闭server
 		<-signalChan
-		klog.Infof("Got OS shutdown signal, shutting down webhook-template server gracefully...")
+		sugaredLogger.Infof("Got OS shutdown signal, shutting down webhook-template server gracefully...")
 		// _ = server.Shutdown(context.Background())
 
 		// 创建上下文，带有时限
@@ -65,22 +67,23 @@ in the Kubernetes cluster to register remote webhook-template admission controll
 
 		// 关闭webhook服务器
 		if err := webhookServer.Shutdown(ctx); err != nil {
-			klog.Errorf("Error shutting down webhook server: %v", err)
+			sugaredLogger.Errorf("Error shutting down webhook server: %v", err)
 		}
 		// 关闭metrics服务器
 		if err := metricsServer.Shutdown(ctx); err != nil {
-			klog.Errorf("Error shutting down metrics server: %v", err)
+			sugaredLogger.Errorf("Error shutting down metrics server: %v", err)
 		}
 	},
 }
 
 func init() {
-	// 定义 goflags 子命令的 flagset，并将 klog 作为 goflags 的子命令来使用
-	fs := goflags.NewFlagSet("", goflags.PanicOnError)
-	// klog.InitFlags() 与 goflags.Parse() 配合使用，可以将 klog 作为 goflags 的子命令来使用
-	klog.InitFlags(fs)
+	// 定义 goflags 子命令的 flagset，并将 log 作为 goflags 的子命令来使用
+	// fs := goflags.NewFlagSet("", goflags.PanicOnError)
+	// log.InitFlags() 与 goflags.Parse() 配合使用，可以将 log 作为 goflags 的子命令来使用
+	// log.InitFlags(fs)
 	// 向 CmdWebhook.Flags() 注入 goflags 子命令的 flagset
-	CmdWebhook.Flags().AddGoFlagSet(fs)
+	// CmdWebhook.Flags().AddGoFlagSet(fs)
+
 	// 定义 webhook-template 所需要的TLS证书和私钥
 	CmdWebhook.Flags().StringVar(&api.CertFile, "tls-cert-file", "/tmp/k8s-webhook-template-server/serving-certs/tls.crt",
 		"File containing the default x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert).")
@@ -93,17 +96,20 @@ func init() {
 	// 	"Image to be used as the injected sidecar")
 	CmdWebhook.Flags().IntVar(&api.MetricsPort, "metrics-bind-address", 8443,
 		"WebhookPort that the metrics server listens on.")
-
-	// 本地 调试启动
-	api.CertFile = "internal/certs/tls.crt"
-	api.KeyFile = "internal/certs/tls.key"
 }
 
 func main() {
+	// 初始化日志记录器
+	if err := logger.Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+	sugaredLogger := logger.WithName("main")
 	// 解析 goflags 子命令的 flagset
 	if err := CmdWebhook.Execute(); err != nil {
-		// 如果解析 flagset 出错，将 panic 并将 error 信息输出到 klog
-		klog.ErrorS(err, "rootCmd.Execute()")
+		// 如果解析 flagset 出错，将 panic 并将 error 信息输出到 sugaredLogger
+		sugaredLogger.Error(err, "Error executing command")
+		// sugaredLogger.ErrorS(err, "rootCmd.Execute()")
 		os.Exit(1)
 	}
 }

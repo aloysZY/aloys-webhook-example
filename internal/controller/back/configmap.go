@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package back
 
 import (
 	"github.com/aloys.zy/aloys-webhook-example/api"
-	v1 "k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -34,7 +34,7 @@ const (
 )
 
 // deny configmaps with specific key-value pair.
-func AdmitConfigMaps(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func AdmitConfigMaps(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	klog.V(2).Info("admitting configmaps")
 	configMapResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
 	if ar.Request.Resource != configMapResource {
@@ -43,7 +43,7 @@ func AdmitConfigMaps(ar v1.AdmissionReview) *v1.AdmissionResponse {
 	}
 
 	var raw []byte
-	if ar.Request.Operation == v1.Delete {
+	if ar.Request.Operation == admissionv1.Delete {
 		raw = ar.Request.OldObject.Raw
 	} else {
 		raw = ar.Request.Object.Raw
@@ -54,17 +54,17 @@ func AdmitConfigMaps(ar v1.AdmissionReview) *v1.AdmissionResponse {
 		klog.Error(err)
 		return api.ToV1AdmissionResponse(err)
 	}
-	reviewResponse := v1.AdmissionResponse{}
+	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
 	for k, v := range configmap.Data {
 		if k == "webhook-e2e-test" && v == "webhook-disallow" &&
-			(ar.Request.Operation == v1.Create || ar.Request.Operation == v1.Update) {
+			(ar.Request.Operation == admissionv1.Create || ar.Request.Operation == admissionv1.Update) {
 			reviewResponse.Allowed = false
 			reviewResponse.Result = &metav1.Status{
 				Reason: "the configmap contains unwanted key and value",
 			}
 		}
-		if k == "webhook-e2e-test" && v == "webhook-nondeletable" && ar.Request.Operation == v1.Delete {
+		if k == "webhook-e2e-test" && v == "webhook-nondeletable" && ar.Request.Operation == admissionv1.Delete {
 			reviewResponse.Allowed = false
 			reviewResponse.Result = &metav1.Status{
 				Reason: "the configmap cannot be deleted because it contains unwanted key and value",
@@ -74,7 +74,7 @@ func AdmitConfigMaps(ar v1.AdmissionReview) *v1.AdmissionResponse {
 	return &reviewResponse
 }
 
-func MutateConfigmaps(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func MutateConfigmaps(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	klog.V(2).Info("mutating configmaps")
 	configMapResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
 	if ar.Request.Resource != configMapResource {
@@ -89,7 +89,7 @@ func MutateConfigmaps(ar v1.AdmissionReview) *v1.AdmissionResponse {
 		klog.Error(err)
 		return api.ToV1AdmissionResponse(err)
 	}
-	reviewResponse := v1.AdmissionResponse{}
+	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
 	if configmap.Data["mutation-start"] == "yes" {
 		reviewResponse.Patch = []byte(configMapPatch1)
@@ -99,7 +99,7 @@ func MutateConfigmaps(ar v1.AdmissionReview) *v1.AdmissionResponse {
 	}
 
 	if len(reviewResponse.Patch) != 0 {
-		pt := v1.PatchTypeJSONPatch
+		pt := admissionv1.PatchTypeJSONPatch
 		reviewResponse.PatchType = &pt
 	}
 

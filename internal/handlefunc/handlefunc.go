@@ -4,61 +4,62 @@ import (
 	"net/http"
 
 	"github.com/aloys.zy/aloys-webhook-example/internal/controller"
+	"github.com/aloys.zy/aloys-webhook-example/internal/controller/back"
 )
 
 // ServeAlwaysAllowDelayFiveSeconds 传入请求参数
 func ServeAlwaysAllowDelayFiveSeconds(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.AlwaysAllowDelayFiveSeconds))
+	serve(w, r, newDelegateToV1AdmitHandler(back.AlwaysAllowDelayFiveSeconds))
 }
 
 func ServeAlwaysDeny(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.AlwaysDeny))
+	serve(w, r, newDelegateToV1AdmitHandler(back.AlwaysDeny))
 }
 
 func ServeAddLabel(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.AddLabel))
+	serve(w, r, newDelegateToV1AdmitHandler(back.AddLabel))
 }
 
 func ServePods(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.AdmitPods))
+	serve(w, r, newDelegateToV1AdmitHandler(back.AdmitPods))
 }
 
 func ServeAttachingPods(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.DenySpecificAttachment))
+	serve(w, r, newDelegateToV1AdmitHandler(back.DenySpecificAttachment))
 }
 
 func ServeMutatePods(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.MutatePods))
+	serve(w, r, newDelegateToV1AdmitHandler(back.MutatePods))
 }
 
 func ServeMutatePodsSidecar(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.MutatePodsSidecar))
+	serve(w, r, newDelegateToV1AdmitHandler(back.MutatePodsSidecar))
 }
 
 func ServeConfigmaps(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.AdmitConfigMaps))
+	serve(w, r, newDelegateToV1AdmitHandler(back.AdmitConfigMaps))
 }
 
 func ServeMutateConfigmaps(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.MutateConfigmaps))
+	serve(w, r, newDelegateToV1AdmitHandler(back.MutateConfigmaps))
 }
 
 func ServeCustomResource(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.AdmitCustomResource))
+	serve(w, r, newDelegateToV1AdmitHandler(back.AdmitCustomResource))
 }
 
 func ServeMutateCustomResource(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.MutateCustomResource))
+	serve(w, r, newDelegateToV1AdmitHandler(back.MutateCustomResource))
 }
 
 func ServeCRD(w http.ResponseWriter, r *http.Request) {
-	serve(w, r, newDelegateToV1AdmitHandler(controller.AdmitCRD))
+	serve(w, r, newDelegateToV1AdmitHandler(back.AdmitCRD))
 }
 
 func ServeMutateNodeOversold(writer http.ResponseWriter, request *http.Request) {
 	serve(writer, request, newDelegateToV1AdmitHandler(controller.MutateNodes))
 }
 
-func ServeValidatePodContainerLimit(writer http.ResponseWriter, request *http.Request) {
-	serve(writer, request, newDelegateToV1AdmitHandler(controller.ValidatePodContainerLimit))
-}
+// func ServeValidatePodContainerLimit(writer http.ResponseWriter, request *http.Request) {
+// 	serve(writer, request, newDelegateToV1AdmitHandler(controller.ValidatePodContainerLimit))
+// }

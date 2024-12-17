@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package back
 
 import (
 	"encoding/json"
@@ -58,7 +58,7 @@ func TestAddLabel(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			review := v1.AdmissionReview{Request: &v1.AdmissionRequest{Object: runtime.RawExtension{Raw: raw}}}
+			review := admissionv1.AdmissionReview{Request: &v1.AdmissionRequest{Object: runtime.RawExtension{Raw: raw}}}
 			response := AddLabel(review)
 			if response.Patch != nil {
 				patchObj, err := jsonpatch.DecodePatch(response.Patch)

@@ -17,19 +17,19 @@ limitations under the License.
 package api
 
 import (
-	v1 "k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func ConvertAdmissionRequestToV1(r *v1beta1.AdmissionRequest) *v1.AdmissionRequest {
-	return &v1.AdmissionRequest{
+func ConvertAdmissionRequestToV1(r *v1beta1.AdmissionRequest) *admissionv1.AdmissionRequest {
+	return &admissionv1.AdmissionRequest{
 		Kind:               r.Kind,
 		Namespace:          r.Namespace,
 		Name:               r.Name,
 		Object:             r.Object,
 		Resource:           r.Resource,
-		Operation:          v1.Operation(r.Operation),
+		Operation:          admissionv1.Operation(r.Operation),
 		UID:                r.UID,
 		DryRun:             r.DryRun,
 		OldObject:          r.OldObject,
@@ -62,13 +62,13 @@ func ConvertAdmissionRequestToV1(r *v1beta1.AdmissionRequest) *v1.AdmissionReque
 // 	}
 // }
 
-// func convertAdmissionResponseToV1(r *v1beta1.AdmissionResponse) *v1.AdmissionResponse {
+// func convertAdmissionResponseToV1(r *v1beta1.AdmissionResponse) *admissionv1.AdmissionResponse {
 // 	var pt *v1.PatchType
 // 	if r.PatchType != nil {
 // 		t := v1.PatchType(*r.PatchType)
 // 		pt = &t
 // 	}
-// 	return &v1.AdmissionResponse{
+// 	return &admissionv1.AdmissionResponse{
 // 		UID:              r.UID,
 // 		Allowed:          r.Allowed,
 // 		AuditAnnotations: r.AuditAnnotations,
@@ -79,7 +79,7 @@ func ConvertAdmissionRequestToV1(r *v1beta1.AdmissionRequest) *v1.AdmissionReque
 // 	}
 // }
 
-func ConvertAdmissionResponseToV1beta1(r *v1.AdmissionResponse) *v1beta1.AdmissionResponse {
+func ConvertAdmissionResponseToV1beta1(r *admissionv1.AdmissionResponse) *v1beta1.AdmissionResponse {
 	var pt *v1beta1.PatchType
 	if r.PatchType != nil {
 		t := v1beta1.PatchType(*r.PatchType)
@@ -96,8 +96,8 @@ func ConvertAdmissionResponseToV1beta1(r *v1.AdmissionResponse) *v1beta1.Admissi
 	}
 }
 
-func ToV1AdmissionResponse(err error) *v1.AdmissionResponse {
-	return &v1.AdmissionResponse{
+func ToV1AdmissionResponse(err error) *admissionv1.AdmissionResponse {
+	return &admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),
 		},

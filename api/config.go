@@ -38,6 +38,7 @@ type PatchOperation struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
+// GetPatchItem 将json进行模板化
 func GetPatchItem(op string, path string, val interface{}) PatchOperation {
 	return PatchOperation{
 		Op:    op,

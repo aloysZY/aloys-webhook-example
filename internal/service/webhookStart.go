@@ -7,13 +7,12 @@ import (
 
 	"github.com/aloys.zy/aloys-webhook-example/api"
 	"github.com/aloys.zy/aloys-webhook-example/internal/handlefunc"
-	"k8s.io/klog/v2"
+	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 )
 
 func WebhookStart(configs api.Configs) *http.Server {
-
+	sugaredLogger := logger.WithName("webhook ")
 	webhook := http.NewServeMux()
-	// 简单的http服务器，可以使用gin
 	webhook.HandleFunc("/always-allow-delay-5s", handlefunc.WithMetrics(handlefunc.ServeAlwaysAllowDelayFiveSeconds))
 	webhook.HandleFunc("/always-deny", handlefunc.WithMetrics(handlefunc.ServeAlwaysDeny))
 	webhook.HandleFunc("/add-label", handlefunc.WithMetrics(handlefunc.ServeAddLabel))
@@ -26,15 +25,15 @@ func WebhookStart(configs api.Configs) *http.Server {
 	webhook.HandleFunc("/custom-resource", handlefunc.WithMetrics(handlefunc.ServeCustomResource))
 	webhook.HandleFunc("/mutating-custom-resource", handlefunc.WithMetrics(handlefunc.ServeMutateCustomResource))
 	webhook.HandleFunc("/crd", handlefunc.WithMetrics(handlefunc.ServeCRD))
-	webhook.HandleFunc("/validating-pod-container-limit", handlefunc.WithMetrics(handlefunc.ServeValidatePodContainerLimit))
+	// webhook.HandleFunc("/validating-pod-container-limit", handlefunc.WithMetrics(handlefunc.ServeValidatePodContainerLimit))
 	webhook.HandleFunc("/mutating-node-oversold", handlefunc.WithMetrics(handlefunc.ServeMutateNodeOversold))
 	webhook.HandleFunc("/readyz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
 	webhook.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
 
 	// 服务启动端口和证书配置
 	webhookServer := &http.Server{
-		Addr: fmt.Sprintf(":%d", api.WebhookPort),
-		// TLSConfig:      api.ConfigTLS(configs),
+		Addr:           fmt.Sprintf(":%d", api.WebhookPort),
+		TLSConfig:      api.ConfigTLS(configs),
 		Handler:        webhook,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
@@ -43,15 +42,16 @@ func WebhookStart(configs api.Configs) *http.Server {
 	}
 	// 开启go 启动服务
 	go func() {
-		// if err := webhookServer.ListenAndServeTLS("", ""); err != nil {
-		// 	klog.Errorf("Failed to listen and serve webhook-template server: %v", err)
-		// 	panic(err)
-		// }
-		if err := webhookServer.ListenAndServe(); err != nil {
-			klog.Errorf("Failed to listen and serve webhook-template server: %v", err)
+		if err := webhookServer.ListenAndServeTLS("", ""); err != nil {
+			sugaredLogger.Errorf("Failed to listen and serve webhook server: %v", err)
 			panic(err)
 		}
+		// 调试
+		// if err := webhookServer.ListenAndServe(); err != nil {
+		// 	klog.Errorf("Failed to listen and serve webhook server: %v", err)
+		// 	panic(err)
+		// }
 	}()
-	klog.Info("Webhook server started on port：", api.WebhookPort)
+	sugaredLogger.Info("Webhook server started on port：", api.WebhookPort)
 	return webhookServer
 }

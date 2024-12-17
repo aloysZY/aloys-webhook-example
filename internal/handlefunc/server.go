@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/aloys.zy/aloys-webhook-example/api"
-	v1 "k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -66,13 +66,13 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 		// 将响应对象赋值给 responseObj。
 		responseObj = responseAdmissionReview
-	case v1.SchemeGroupVersion.WithKind("AdmissionReview"):
-		requestedAdmissionReview, ok := obj.(*v1.AdmissionReview)
+	case admissionv1.SchemeGroupVersion.WithKind("AdmissionReview"):
+		requestedAdmissionReview, ok := obj.(*admissionv1.AdmissionReview)
 		if !ok {
-			klog.Errorf("Expected v1.AdmissionReview but got: %T", obj)
+			klog.Errorf("Expected admissionv1.AdmissionReview but got: %T", obj)
 			return
 		}
-		responseAdmissionReview := &v1.AdmissionReview{}
+		responseAdmissionReview := &admissionv1.AdmissionReview{}
 		responseAdmissionReview.SetGroupVersionKind(*gvk)
 		responseAdmissionReview.Response = admit.v1(*requestedAdmissionReview)
 		responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID

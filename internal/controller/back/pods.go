@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package back
 
 import (
 	"fmt"
 	"strings"
 
 	"github.com/aloys.zy/aloys-webhook-example/api"
-	"k8s.io/api/admission/v1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -37,7 +37,7 @@ const (
 )
 
 // AdmitPods only allow pods to pull images from specific registry.
-func AdmitPods(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func AdmitPods(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	klog.V(2).Info("admitting pods")
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if ar.Request.Resource != podResource {
@@ -53,7 +53,7 @@ func AdmitPods(ar v1.AdmissionReview) *v1.AdmissionResponse {
 		klog.Error(err)
 		return api.ToV1AdmissionResponse(err)
 	}
-	reviewResponse := v1.AdmissionResponse{}
+	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
 
 	var msg string
@@ -80,7 +80,7 @@ func AdmitPods(ar v1.AdmissionReview) *v1.AdmissionResponse {
 	return &reviewResponse
 }
 
-func MutatePods(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func MutatePods(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	shouldPatchPod := func(pod *corev1.Pod) bool {
 		if pod.Name != "webhook-template-to-be-mutated" {
 			return false
@@ -90,9 +90,9 @@ func MutatePods(ar v1.AdmissionReview) *v1.AdmissionResponse {
 	return applyPodPatch(ar, shouldPatchPod, podsInitContainerPatch)
 }
 
-func MutatePodsSidecar(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func MutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	if api.SidecarImage == "" {
-		return &v1.AdmissionResponse{
+		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
 				Status:  "Failure",
@@ -116,7 +116,7 @@ func hasContainer(containers []corev1.Container, containerName string) bool {
 	return false
 }
 
-func applyPodPatch(ar v1.AdmissionReview, shouldPatchPod func(*corev1.Pod) bool, patch string) *v1.AdmissionResponse {
+func applyPodPatch(ar admissionv1.AdmissionReview, shouldPatchPod func(*corev1.Pod) bool, patch string) *admissionv1.AdmissionResponse {
 	klog.V(2).Info("mutating pods")
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if ar.Request.Resource != podResource {
@@ -131,11 +131,11 @@ func applyPodPatch(ar v1.AdmissionReview, shouldPatchPod func(*corev1.Pod) bool,
 		klog.Error(err)
 		return api.ToV1AdmissionResponse(err)
 	}
-	reviewResponse := v1.AdmissionResponse{}
+	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
 	if shouldPatchPod(&pod) {
 		reviewResponse.Patch = []byte(patch)
-		pt := v1.PatchTypeJSONPatch
+		pt := admissionv1.PatchTypeJSONPatch
 		reviewResponse.PatchType = &pt
 	}
 	return &reviewResponse
@@ -143,10 +143,10 @@ func applyPodPatch(ar v1.AdmissionReview, shouldPatchPod func(*corev1.Pod) bool,
 
 // DenySpecificAttachment denies `kubectl attach to-be-attached-pod -i -c=container1"
 // or equivalent client requests.
-func DenySpecificAttachment(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func DenySpecificAttachment(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	klog.V(2).Info("handling attaching pods")
 	if ar.Request.Name != "to-be-attached-pod" {
-		return &v1.AdmissionResponse{Allowed: true}
+		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 	if e, a := podResource, ar.Request.Resource; e != a {
@@ -169,9 +169,9 @@ func DenySpecificAttachment(ar v1.AdmissionReview) *v1.AdmissionResponse {
 	}
 	klog.V(2).Info(fmt.Sprintf("podAttachOptions=%#v\n", podAttachOptions))
 	if !podAttachOptions.Stdin || podAttachOptions.Container != "container1" {
-		return &v1.AdmissionResponse{Allowed: true}
+		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
-	return &v1.AdmissionResponse{
+	return &admissionv1.AdmissionResponse{
 		Allowed: false,
 		Result: &metav1.Status{
 			Message: "attaching to pod 'to-be-attached-pod' is not allowed",
