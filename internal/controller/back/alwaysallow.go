@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/global"
+	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -32,7 +32,7 @@ func AlwaysAllowDelayFiveSeconds(ar admissionv1.AdmissionReview) *admissionv1.Ad
 	if ar.Request.Resource != nodeResource {
 		err := fmt.Errorf("expect resource to be %s", nodeResource)
 		klog.Error(err)
-		return global.ToV1AdmissionResponse(err)
+		return setting.ToV1AdmissionResponse(err)
 	}
 	klog.V(2).Info("always-allow-with-delay sleeping for 5 seconds")
 	time.Sleep(5 * time.Second)

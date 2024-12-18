@@ -12,8 +12,8 @@ var (
 	initialized = false
 )
 
-// Init 初始化日志记录器
-func Init() error {
+// Init 初始化日志记录器，并设置日志级别
+func Init(logLevel zapcore.Level) error {
 	if initialized {
 		return nil // 如果已经初始化，则不再重复初始化
 	}
@@ -22,6 +22,9 @@ func Init() error {
 	config := zap.NewProductionConfig()
 	config.EncoderConfig.TimeKey = "timestamp"
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	// 设置日志级别
+	config.Level = zap.NewAtomicLevelAt(logLevel)
 
 	logger, err := config.Build(
 		zap.AddCaller(),                   // 添加调用者信息（文件名和行号）
@@ -50,4 +53,25 @@ func WithName(name string) *zap.SugaredLogger {
 		panic("logger not initialized")
 	}
 	return sugar.With(zap.String("component", name))
+}
+
+func ParseLogLevel(logLevelStr string) (zapcore.Level, error) {
+	switch logLevelStr {
+	case "debug":
+		return zap.DebugLevel, nil
+	case "info":
+		return zap.InfoLevel, nil
+	case "warn", "warning":
+		return zap.WarnLevel, nil
+	case "error":
+		return zap.ErrorLevel, nil
+	case "dpanic":
+		return zap.DPanicLevel, nil
+	case "panic":
+		return zap.PanicLevel, nil
+	case "fatal":
+		return zap.FatalLevel, nil
+	default:
+		return zap.InfoLevel, fmt.Errorf("invalid log level: %s", logLevelStr)
+	}
 }

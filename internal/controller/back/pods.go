@@ -20,7 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/global"
+	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
+	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,15 +44,15 @@ func AdmitPods(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	if ar.Request.Resource != podResource {
 		err := fmt.Errorf("expect resource to be %s", podResource)
 		klog.Error(err)
-		return global.ToV1AdmissionResponse(err)
+		return setting.ToV1AdmissionResponse(err)
 	}
 
 	raw := ar.Request.Object.Raw
 	pod := corev1.Pod{}
-	deserializer := global.Codecs.UniversalDeserializer()
+	deserializer := setting.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
 		klog.Error(err)
-		return global.ToV1AdmissionResponse(err)
+		return setting.ToV1AdmissionResponse(err)
 	}
 	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
@@ -91,7 +92,7 @@ func MutatePods(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 }
 
 func MutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
-	if global.SidecarImage == "" {
+	if configs.SidecarImage == "" {
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
@@ -104,7 +105,7 @@ func MutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	shouldPatchPod := func(pod *corev1.Pod) bool {
 		return !hasContainer(pod.Spec.Containers, "webhook-template-added-sidecar")
 	}
-	return applyPodPatch(ar, shouldPatchPod, fmt.Sprintf(podsSidecarPatch, global.SidecarImage))
+	return applyPodPatch(ar, shouldPatchPod, fmt.Sprintf(podsSidecarPatch, configs.SidecarImage))
 }
 
 func hasContainer(containers []corev1.Container, containerName string) bool {
@@ -126,10 +127,10 @@ func applyPodPatch(ar admissionv1.AdmissionReview, shouldPatchPod func(*corev1.P
 
 	raw := ar.Request.Object.Raw
 	pod := corev1.Pod{}
-	deserializer := global.Codecs.UniversalDeserializer()
+	deserializer := setting.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(raw, nil, &pod); err != nil {
 		klog.Error(err)
-		return global.ToV1AdmissionResponse(err)
+		return setting.ToV1AdmissionResponse(err)
 	}
 	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
@@ -152,20 +153,20 @@ func DenySpecificAttachment(ar admissionv1.AdmissionReview) *admissionv1.Admissi
 	if e, a := podResource, ar.Request.Resource; e != a {
 		err := fmt.Errorf("expect resource to be %s, got %s", e, a)
 		klog.Error(err)
-		return global.ToV1AdmissionResponse(err)
+		return setting.ToV1AdmissionResponse(err)
 	}
 	if e, a := "attach", ar.Request.SubResource; e != a {
 		err := fmt.Errorf("expect subresource to be %s, got %s", e, a)
 		klog.Error(err)
-		return global.ToV1AdmissionResponse(err)
+		return setting.ToV1AdmissionResponse(err)
 	}
 
 	raw := ar.Request.Object.Raw
 	podAttachOptions := corev1.PodAttachOptions{}
-	deserializer := global.Codecs.UniversalDeserializer()
+	deserializer := setting.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(raw, nil, &podAttachOptions); err != nil {
 		klog.Error(err)
-		return global.ToV1AdmissionResponse(err)
+		return setting.ToV1AdmissionResponse(err)
 	}
 	klog.V(2).Info(fmt.Sprintf("podAttachOptions=%#v\n", podAttachOptions))
 	if !podAttachOptions.Stdin || podAttachOptions.Container != "container1" {

@@ -12,15 +12,18 @@ webhooks:
       name: webhook-service
       namespace: system
       path: /mutating-cpu-oversell
+#       failurePolicy 设置为 Fail，这意味着如果 webhook 无法被调用（例如服务不可用），API 请求将会失败
   failurePolicy: Fail
+#  将 failurePolicy 改为 Ignore。这样，当 webhook 无法被调用时，API 服务器会忽略 webhook 的结果，并继续处理 API 请求
+#  failurePolicy: Ignore
   name: mutating-cpu-oversell.kb.io
   sideEffects: None
   rules:
 #    rules字段用于定义触发webhook的具体条件
-    - operations: [ "UPDATE" ]
-      apiGroups: [ "" ]
-      apiVersions: [ "v1" ]
-      resources: [ "nodes/status" ]
+    - operations: ["CREATE", "UPDATE"]
+      apiGroups: [""]
+      apiVersions: ["v1"]
+      resources: ["nodes","nodes/status"]
   #  根据命名空间标签进行匹配，这个字段用于根据命名空间的标签来选择哪些命名空间中的资源会被这个 webhook 处理。
   #    namespaceSelector:
   #      matchLabels:
