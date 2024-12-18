@@ -25,5 +25,5 @@ resources:
 #- application_editor_role.yaml
 #- application_viewer_role.yaml
 #新权限追加
-- node-oversold_role.yaml
-- node-oversold_role_binding.yaml
+- cpu_oversell/cpu-oversell.yaml
+- cpu_oversell/cpu-oversell_role_binding.yaml

@@ -2,7 +2,7 @@ resources:
 #- manifests.yaml
 - service.yaml
 #新增规则进行追加
-- node-oversold.yaml
+- cpu_oversell/cpu_oversell.yaml
 
 configurations:
 - kustomizeconfig.yaml

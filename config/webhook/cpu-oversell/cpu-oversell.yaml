@@ -1,0 +1,31 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: cpu-oversell
+webhooks:
+- admissionReviewVersions:
+    - v1
+    - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutating-cpu-oversell
+  failurePolicy: Fail
+  name: mutating-cpu-oversell.kb.io
+  sideEffects: None
+  rules:
+#    rules字段用于定义触发webhook的具体条件
+    - operations: [ "UPDATE" ]
+      apiGroups: [ "" ]
+      apiVersions: [ "v1" ]
+      resources: [ "nodes/status" ]
+  #  根据命名空间标签进行匹配，这个字段用于根据命名空间的标签来选择哪些命名空间中的资源会被这个 webhook 处理。
+  #    namespaceSelector:
+  #      matchLabels:
+  #        cpu-oversell-samples-system: enabled
+  #根据对象标签进行匹配，对象选择器则是基于资源对象本身的标签来决定是否对特定资源应用 webhook。
+  #  objectSelector:
+  #    matchLabels:
+  #      cpu-oversell-samples-system: enabled

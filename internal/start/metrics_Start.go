@@ -1,4 +1,4 @@
-package service
+package start
 
 import (
 	"fmt"
@@ -11,10 +11,11 @@ import (
 )
 
 func MetricsStart(configs api.Configs) *http.Server {
-	sugaredLogger := logger.WithName("metrics")
 	// 启动metrics服务器
 	metricsMux := http.NewServeMux()
 	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsMux.HandleFunc("/readyz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
+	metricsMux.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
 	metricsServer := &http.Server{
 		Addr:           fmt.Sprintf(":%d", api.MetricsPort),
 		Handler:        metricsMux,
@@ -27,16 +28,10 @@ func MetricsStart(configs api.Configs) *http.Server {
 
 	go func() {
 		if err := metricsServer.ListenAndServeTLS("", ""); err != nil {
-			sugaredLogger.Error("Failed to listen and serve webhook-metrics server. %v", err)
+			logger.WithName("metrics Start.").Error("Failed to listen and serve webhook-metrics server. %v", err)
 			panic(err)
 		}
-		// 调试使用
-		// if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		// 	klog.Errorf("Failed to listen and serve webhook-metrics server: %v", err)
-		// 	os.Exit(1)
-		// }
 	}()
-
-	sugaredLogger.Info("Metrics server started on port：", api.MetricsPort)
+	logger.WithName("metrics Start.").Info("Metrics server started on port：", api.MetricsPort)
 	return metricsServer
 }

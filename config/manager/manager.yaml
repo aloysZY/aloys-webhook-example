@@ -65,7 +65,7 @@ spec:
 #          - --health-probe-bind-address=:8081
           - --tls-cert-file=/tmp/k8s-webhook-template-server/serving-certs/tls.crt
           - --tls-private-key-file=/tmp/k8s-webhook-template-server/serving-certs/tls.key
-          - --v=4
+#          - --v=4
           - --webhook-bind-address=9443
         image: controller:latest
         name: manager
@@ -77,13 +77,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 9443
+            port: 8443
           initialDelaySeconds: 15
           periodSeconds: 20
         readinessProbe:
           httpGet:
             path: /readyz
-            port: 9443
+            port: 8443
           initialDelaySeconds: 5
           periodSeconds: 10
         # TODO(user): Configure the resources accordingly based on the project requirements.

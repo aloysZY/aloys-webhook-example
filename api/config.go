@@ -14,6 +14,11 @@ var (
 	MetricsPort  int
 )
 
+const (
+	TRUE  = "true"
+	FALSE = "false"
+)
+
 // Configs contains the server (the webhook-template) cert and key.
 type Configs struct {
 	CertFile string

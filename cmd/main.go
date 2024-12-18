@@ -26,7 +26,7 @@ import (
 
 	"github.com/aloys.zy/aloys-webhook-example/api"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
-	"github.com/aloys.zy/aloys-webhook-example/internal/service"
+	"github.com/aloys.zy/aloys-webhook-example/internal/start"
 	"github.com/spf13/cobra"
 	// "k8s.io/log/v2"
 	// TODO: try this library to see if it generates correct json patch
@@ -50,8 +50,8 @@ in the Kubernetes cluster to register remote webhook-template admission controll
 			KeyFile:  api.KeyFile,
 		}
 		// 启动服务
-		metricsServer := service.MetricsStart(configs)
-		webhookServer := service.WebhookStart(configs)
+		metricsServer := start.MetricsStart(configs)
+		webhookServer := start.WebhookStart(configs)
 
 		// hang
 		signalChan := make(chan os.Signal, 1)
@@ -109,7 +109,6 @@ func main() {
 	if err := CmdWebhook.Execute(); err != nil {
 		// 如果解析 flagset 出错，将 panic 并将 error 信息输出到 sugaredLogger
 		sugaredLogger.Error(err, "Error executing command")
-		// sugaredLogger.ErrorS(err, "rootCmd.Execute()")
 		os.Exit(1)
 	}
 }

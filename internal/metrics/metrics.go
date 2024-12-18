@@ -1,4 +1,4 @@
-package handlefunc
+package metrics
 
 import (
 	"net/http"

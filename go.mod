@@ -3,10 +3,10 @@ module github.com/aloys.zy/aloys-webhook-example
 go 1.23.3
 
 require (
+	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	github.com/prometheus/client_golang v1.20.5
 	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.27.0
-	google.golang.org/appengine v1.6.8
 	gopkg.in/evanphx/json-patch.v4 v4.12.0
 	k8s.io/api v0.32.0
 	k8s.io/apiextensions-apiserver v0.32.0
@@ -17,10 +17,10 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/evanphx/json-patch v0.5.2 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

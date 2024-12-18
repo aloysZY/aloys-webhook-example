@@ -7,6 +7,11 @@ import (
 	"github.com/aloys.zy/aloys-webhook-example/internal/controller/back"
 )
 
+// ServeMutateCPUOversell 修改Node cpu进行超卖
+func ServeMutateCPUOversell(writer http.ResponseWriter, request *http.Request) {
+	serve(writer, request, newDelegateToV1AdmitHandler(controller.MutateCPUOversell))
+}
+
 // ServeAlwaysAllowDelayFiveSeconds 传入请求参数
 func ServeAlwaysAllowDelayFiveSeconds(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, newDelegateToV1AdmitHandler(back.AlwaysAllowDelayFiveSeconds))
@@ -54,10 +59,6 @@ func ServeMutateCustomResource(w http.ResponseWriter, r *http.Request) {
 
 func ServeCRD(w http.ResponseWriter, r *http.Request) {
 	serve(w, r, newDelegateToV1AdmitHandler(back.AdmitCRD))
-}
-
-func ServeMutateNodeOversold(writer http.ResponseWriter, request *http.Request) {
-	serve(writer, request, newDelegateToV1AdmitHandler(controller.MutateNodes))
 }
 
 // func ServeValidatePodContainerLimit(writer http.ResponseWriter, request *http.Request) {

@@ -44,14 +44,6 @@ func Init() error {
 	return nil
 }
 
-// // Get 获取全局日志记录器
-// func Get() *zap.SugaredLogger {
-// 	if !initialized {
-// 		panic("logger not initialized")
-// 	}
-// 	return sugar
-// }
-
 // WithName 返回带有指定组件名称的日志记录器
 func WithName(name string) *zap.SugaredLogger {
 	if !initialized {
