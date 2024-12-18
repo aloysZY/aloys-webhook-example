@@ -5,21 +5,21 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func MetricsStart(configs api.Configs) *http.Server {
+func MetricsStart(configs global.Configs) *http.Server {
 	// 启动metrics服务器
 	metricsMux := http.NewServeMux()
 	metricsMux.Handle("/metrics", promhttp.Handler())
 	metricsMux.HandleFunc("/readyz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
 	metricsMux.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) { w.Write([]byte("ok")) })
 	metricsServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", api.MetricsPort),
+		Addr:           fmt.Sprintf(":%d", global.MetricsPort),
 		Handler:        metricsMux,
-		TLSConfig:      api.ConfigTLS(configs),
+		TLSConfig:      global.ConfigTLS(configs),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
 		IdleTimeout:    60 * time.Second,
@@ -32,6 +32,6 @@ func MetricsStart(configs api.Configs) *http.Server {
 			panic(err)
 		}
 	}()
-	logger.WithName("metrics Start.").Info("Metrics server started on port：", api.MetricsPort)
+	logger.WithName("metrics Start.").Info("Metrics server started on port：", global.MetricsPort)
 	return metricsServer
 }

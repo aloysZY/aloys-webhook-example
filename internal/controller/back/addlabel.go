@@ -4,7 +4,7 @@ package back
 import (
 	"encoding/json"
 
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	"k8s.io/api/admission/v1"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +42,7 @@ func AddLabel(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	if err != nil {
 		klog.Error(err)
 		// 返回错误
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 	// 这里使用了 admissionv1.AdmissionResponse{} 来创建一个空的 AdmissionResponse 结构体实例。v1 是指Kubernetes API的版本，在这里是 admission.k8s.io/v1。
 	// AdmissionResponse 用来告诉API服务器是否允许或拒绝传入的请求，以及在某些情况下如何修改请求对象。

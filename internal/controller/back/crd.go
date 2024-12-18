@@ -19,7 +19,7 @@ package back
 import (
 	"fmt"
 
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	admissionv1 "k8s.io/api/admission/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -44,24 +44,24 @@ func AdmitCRD(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	switch ar.Request.Resource {
 	case v1beta1GVR:
 		crd := apiextensionsv1beta1.CustomResourceDefinition{}
-		deserializer := api.Codecs.UniversalDeserializer()
+		deserializer := global.Codecs.UniversalDeserializer()
 		if _, _, err := deserializer.Decode(raw, nil, &crd); err != nil {
 			klog.Error(err)
-			return api.ToV1AdmissionResponse(err)
+			return global.ToV1AdmissionResponse(err)
 		}
 		labels = crd.Labels
 	case v1GVR:
 		crd := apiextensionsv1.CustomResourceDefinition{}
-		deserializer := api.Codecs.UniversalDeserializer()
+		deserializer := global.Codecs.UniversalDeserializer()
 		if _, _, err := deserializer.Decode(raw, nil, &crd); err != nil {
 			klog.Error(err)
-			return api.ToV1AdmissionResponse(err)
+			return global.ToV1AdmissionResponse(err)
 		}
 		labels = crd.Labels
 	default:
 		err := fmt.Errorf("expect resource to be one of [%v, %v] but got %v", v1beta1GVR, v1GVR, ar.Request.Resource)
 		klog.Error(err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	if v, ok := labels["webhook-e2e-test"]; ok {

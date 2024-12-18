@@ -19,7 +19,7 @@ package back
 import (
 	"encoding/json"
 
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -45,7 +45,7 @@ func MutateCustomResource(ar admissionv1.AdmissionReview) *admissionv1.Admission
 	err := json.Unmarshal(raw, &cr)
 	if err != nil {
 		klog.Error(err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	reviewResponse := admissionv1.AdmissionResponse{}
@@ -80,7 +80,7 @@ func AdmitCustomResource(ar admissionv1.AdmissionReview) *admissionv1.AdmissionR
 	err := json.Unmarshal(raw, &cr)
 	if err != nil {
 		klog.Error(err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	reviewResponse := admissionv1.AdmissionResponse{}

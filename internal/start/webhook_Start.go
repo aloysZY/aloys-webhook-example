@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	"github.com/aloys.zy/aloys-webhook-example/internal/handlefunc"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/metrics"
 )
 
-func WebhookStart(configs api.Configs) *http.Server {
+func WebhookStart(configs global.Configs) *http.Server {
 	webhook := http.NewServeMux()
 	webhook.HandleFunc("/mutating-cpu-oversell", metrics.WithMetrics(handlefunc.ServeMutateCPUOversell))
 	webhook.HandleFunc("/always-allow-delay-5s", metrics.WithMetrics(handlefunc.ServeAlwaysAllowDelayFiveSeconds))
@@ -30,8 +30,8 @@ func WebhookStart(configs api.Configs) *http.Server {
 
 	// 服务启动端口和证书配置
 	webhookServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", api.WebhookPort),
-		TLSConfig:      api.ConfigTLS(configs),
+		Addr:           fmt.Sprintf(":%d", global.WebhookPort),
+		TLSConfig:      global.ConfigTLS(configs),
 		Handler:        webhook,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
@@ -45,6 +45,6 @@ func WebhookStart(configs api.Configs) *http.Server {
 			panic(err)
 		}
 	}()
-	logger.WithName("webhook Start").Info("Webhook server started on port：", api.WebhookPort)
+	logger.WithName("webhook Start").Info("Webhook server started on port：", global.WebhookPort)
 	return webhookServer
 }

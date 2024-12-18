@@ -17,7 +17,7 @@ limitations under the License.
 package back
 
 import (
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,10 +49,10 @@ func AdmitConfigMaps(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRespo
 		raw = ar.Request.Object.Raw
 	}
 	configmap := corev1.ConfigMap{}
-	deserializer := api.Codecs.UniversalDeserializer()
+	deserializer := global.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(raw, nil, &configmap); err != nil {
 		klog.Error(err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true
@@ -84,10 +84,10 @@ func MutateConfigmaps(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResp
 
 	raw := ar.Request.Object.Raw
 	configmap := corev1.ConfigMap{}
-	deserializer := api.Codecs.UniversalDeserializer()
+	deserializer := global.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(raw, nil, &configmap); err != nil {
 		klog.Error(err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 	reviewResponse := admissionv1.AdmissionResponse{}
 	reviewResponse.Allowed = true

@@ -2,17 +2,16 @@ package controller
 
 import (
 	"fmt"
-	"math"
-	"strconv"
-	"strings"
-
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/util"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"math"
+	"strconv"
+	"strings"
 )
 
 const CPUOversell = "node-oversold-cpu"
@@ -35,10 +34,10 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	// 解码传入的节点对象
 	raw := ar.Request.Object.Raw
 	node := corev1.Node{}
-	deserializer := api.Codecs.UniversalDeserializer()
+	deserializer := global.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(raw, nil, &node); err != nil {
 		logger.WithName("Mutate Nodes").Error(err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	// 保存原始节点对象的副本，用于生成 Patch
@@ -50,7 +49,7 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 		logger.WithName("Mutate Nodes").Errorf("Error determining if CPU should be modified: %v", err)
 
 		// 如果注解不存在或者不是 "false"，修改为 "false"
-		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, api.FALSE)
+		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, global.FALSE)
 
 		// 生成 Patch 并返回，允许请求通过并包含警告信息
 		return util.GeneratePatchAndResponse(
@@ -67,16 +66,16 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 		cpuValue, err := parseCPUStringToMilliCPU(newAllocatableCPU)
 		if err != nil {
 			logger.WithName("Mutate Nodes").Errorf("Error parsing new allocatable CPU value: %v", err)
-			return api.ToV1AdmissionResponse(err)
+			return global.ToV1AdmissionResponse(err)
 		}
 
 		// 更新 allocatable.cpu 和注解
 		node.Status.Allocatable[corev1.ResourceCPU] = *resource.NewMilliQuantity(cpuValue, resource.DecimalSI)
-		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, api.TRUE)
+		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, global.TRUE)
 		logger.WithName("Mutate Nodes").Info("Modified allocatable cpu and annotation.")
 	} else if !shouldModify {
 		// 如果注解不存在或者不是 "false"，修改为 "false"
-		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, api.FALSE)
+		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, global.FALSE)
 		logger.WithName("Mutate Nodes").Info("Added or updated annotation with value 'false'.")
 	}
 

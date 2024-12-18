@@ -24,7 +24,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/start"
 	"github.com/spf13/cobra"
@@ -45,9 +45,9 @@ in the Kubernetes cluster to register remote webhook-template admission controll
 
 		sugaredLogger := logger.WithName("main.CmdWebhook")
 		// 加载证书
-		configs := api.Configs{
-			CertFile: api.CertFile,
-			KeyFile:  api.KeyFile,
+		configs := global.Configs{
+			CertFile: global.CertFile,
+			KeyFile:  global.KeyFile,
 		}
 		// 启动服务
 		metricsServer := start.MetricsStart(configs)
@@ -85,16 +85,16 @@ func init() {
 	// CmdWebhook.Flags().AddGoFlagSet(fs)
 
 	// 定义 webhook-template 所需要的TLS证书和私钥
-	CmdWebhook.Flags().StringVar(&api.CertFile, "tls-cert-file", "/tmp/k8s-webhook-template-server/serving-certs/tls.crt",
+	CmdWebhook.Flags().StringVar(&global.CertFile, "tls-cert-file", "/tmp/k8s-webhook-template-server/serving-certs/tls.crt",
 		"File containing the default x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert).")
-	CmdWebhook.Flags().StringVar(&api.KeyFile, "tls-private-key-file", "/tmp/k8s-webhook-template-server/serving-certs/tls.key",
+	CmdWebhook.Flags().StringVar(&global.KeyFile, "tls-private-key-file", "/tmp/k8s-webhook-template-server/serving-certs/tls.key",
 		"File containing the default x509 private key matching --tls-cert-file.")
 	// 定义 webhook-template 所需要的启动端口号，默认为9443，可以由 --port 参数来修改
-	CmdWebhook.Flags().IntVar(&api.WebhookPort, "webhook-bind-address", 9443,
+	CmdWebhook.Flags().IntVar(&global.WebhookPort, "webhook-bind-address", 9443,
 		"Secure port that the webhook-template listens on")
 	// CmdWebhook.Flags().StringVar(&base.SidecarImage, "sidecar-image", "",
 	// 	"Image to be used as the injected sidecar")
-	CmdWebhook.Flags().IntVar(&api.MetricsPort, "metrics-bind-address", 8443,
+	CmdWebhook.Flags().IntVar(&global.MetricsPort, "metrics-bind-address", 8443,
 		"WebhookPort that the metrics server listens on.")
 }
 

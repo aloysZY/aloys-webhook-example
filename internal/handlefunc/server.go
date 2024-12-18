@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/admission/v1beta1"
@@ -39,7 +39,7 @@ func serve(w http.ResponseWriter, r *http.Request, admit admitHandler) {
 	sugaredLogger.Info(fmt.Sprintf("handling request: %s", body))
 
 	// 使用 UniversalDeserializer 尝试将请求体解码为Kubernetes对象。gvk 是解码后的对象的GroupVersionKind。
-	deserializer := api.Codecs.UniversalDeserializer()
+	deserializer := global.Codecs.UniversalDeserializer()
 	obj, gvk, err := deserializer.Decode(body, nil, nil)
 	if err != nil {
 		// 如果解码失败，记录错误日志并返回HTTP 400 Bad Request

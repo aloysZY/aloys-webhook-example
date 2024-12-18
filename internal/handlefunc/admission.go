@@ -1,7 +1,7 @@
 package handlefunc
 
 import (
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/admission/v1beta1"
 )
@@ -27,8 +27,8 @@ func newDelegateToV1AdmitHandler(f admitv1Func) admitHandler {
 
 func delegateV1beta1AdmitToV1(f admitv1Func) admitv1beta1Func {
 	return func(review v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-		in := admissionv1.AdmissionReview{Request: api.ConvertAdmissionRequestToV1(review.Request)}
+		in := admissionv1.AdmissionReview{Request: global.ConvertAdmissionRequestToV1(review.Request)}
 		out := f(in)
-		return api.ConvertAdmissionResponseToV1beta1(out)
+		return global.ConvertAdmissionResponseToV1beta1(out)
 	}
 }

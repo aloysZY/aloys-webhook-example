@@ -1,4 +1,4 @@
-package api
+package global
 
 import (
 	"crypto/tls"
@@ -37,17 +37,17 @@ func ConfigTLS(configs Configs) *tls.Config {
 	}
 }
 
-type PatchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
-}
+// type PatchOperation struct {
+// 	Op    string      `json:"op"`
+// 	Path  string      `json:"path"`
+// 	Value interface{} `json:"value,omitempty"`
+// }
 
-// GetPatchItem 将json进行模板化
-func GetPatchItem(op string, path string, val interface{}) PatchOperation {
-	return PatchOperation{
-		Op:    op,
-		Path:  path,
-		Value: val,
-	}
-}
+// // GetPatchItem 将json进行模板化
+// func GetPatchItem(op string, path string, val interface{}) PatchOperation {
+// 	return PatchOperation{
+// 		Op:    op,
+// 		Path:  path,
+// 		Value: val,
+// 	}
+// }

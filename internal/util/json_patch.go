@@ -1,7 +1,7 @@
 package util
 
 import (
-	"github.com/aloys.zy/aloys-webhook-example/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/global"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/mattbaird/jsonpatch"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -16,28 +16,28 @@ func GeneratePatchAndResponse(originalNode, modifiedNode *corev1.Node, allowed b
 	originalNodeBytes, err := json.Marshal(originalNode)
 	if err != nil {
 		logger.WithName("Json Path").Errorf("failed to marshal originalNode to JSON: %v", err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	// 将修改后的节点对象序列化为 JSON
 	modifiedNodeBytes, err := json.Marshal(modifiedNode)
 	if err != nil {
 		logger.WithName("Json Path").Errorf("failed to marshal modified node to JSON: %v", err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	// 生成从原始节点到修改后节点的 JSON Patch
 	patch, err := jsonpatch.CreatePatch(originalNodeBytes, modifiedNodeBytes)
 	if err != nil {
 		logger.WithName("Json Path").Errorf("failed to create JSON patch: %v", err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	// 将 Patch 序列化为字节数组
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {
 		logger.WithName("Json Path").Errorf("failed to marshal JSON patch: %v", err)
-		return api.ToV1AdmissionResponse(err)
+		return global.ToV1AdmissionResponse(err)
 	}
 
 	// 构造 AdmissionResponse

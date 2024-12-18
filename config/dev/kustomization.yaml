@@ -18,7 +18,7 @@ patches:
       #现在这些变成单独的名称了，就不需要学多个了
       - op: "add"
         path: "/webhooks/0/clientConfig/url"
-        value: "https://172.20.10.2:9443/mutating-node-oversold"
+        value: "https://172.20.10.2:9443/mutating-cpu-oversell"
     target:
       kind: MutatingWebhookConfiguration
 #  - patch: |
