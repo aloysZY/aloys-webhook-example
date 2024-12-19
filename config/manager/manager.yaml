@@ -63,10 +63,10 @@ spec:
         args:
 #          - --leader-elect
 #          - --health-probe-bind-address=:8081
-          - --tls-cert-file=/tmp/k8s-webhook-template-server/serving-certs/tls.crt
-          - --tls-private-key-file=/tmp/k8s-webhook-template-server/serving-certs/tls.key
-#          - --v=4
+          - --tls-cert-file=/certs/tls.crt
+          - --tls-private-key-file=/certs/tls.key
           - --webhook-bind-address=9443
+          - --log-level=debug
         image: controller:latest
         name: manager
         securityContext:
@@ -77,13 +77,15 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8443
+            port: metrics-server
+            scheme: HTTPS
           initialDelaySeconds: 15
           periodSeconds: 20
         readinessProbe:
           httpGet:
             path: /readyz
-            port: 8443
+            port: metrics-server
+            scheme: HTTPS
           initialDelaySeconds: 5
           periodSeconds: 10
         # TODO(user): Configure the resources accordingly based on the project requirements.

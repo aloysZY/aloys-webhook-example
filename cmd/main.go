@@ -107,9 +107,9 @@ in the Kubernetes cluster to register remote webhook-template admission controll
 
 func init() {
 	// 定义 webhook-template 所需要的TLS证书和私钥
-	CmdWebhook.Flags().StringVar(&configs.CertFile, "tls-cert-file", "/tmp/k8s-webhook-template-server/serving-certs/tls.crt",
+	CmdWebhook.Flags().StringVar(&configs.CertFile, "tls-cert-file", "/certs/tls.crt",
 		"File containing the default x509 Certificate for HTTPS. (CA cert, if any, concatenated after server cert).")
-	CmdWebhook.Flags().StringVar(&configs.KeyFile, "tls-private-key-file", "/tmp/k8s-webhook-template-server/serving-certs/tls.key",
+	CmdWebhook.Flags().StringVar(&configs.KeyFile, "tls-private-key-file", "/certs/tls.key",
 		"File containing the default x509 private key matching --tls-cert-file.")
 	// 定义 webhook-template 所需要的启动端口号，默认为9443，可以由 --port 参数来修改
 	CmdWebhook.Flags().IntVar(&configs.WebhookPort, "webhook-bind-address", 9443,

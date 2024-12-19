@@ -12,6 +12,8 @@ webhooks:
       name: webhook-service
       namespace: system
       path: /mutating-cpu-oversell
+#      不是默认的端口要显示指定
+      port: 9443
 #       failurePolicy 设置为 Fail，这意味着如果 webhook 无法被调用（例如服务不可用），API 请求将会失败
   failurePolicy: Fail
 #  将 failurePolicy 改为 Ignore。这样，当 webhook 无法被调用时，API 服务器会忽略 webhook 的结果，并继续处理 API 请求

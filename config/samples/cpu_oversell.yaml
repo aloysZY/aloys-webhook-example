@@ -8,5 +8,4 @@ spec:
       image: nginx:latest
       resources:
         limits:
-          cpu: "7" # 6 cores
-          memory: "8Gi" # 8 GiB
+          cpu: "7" #默认是4C，如果cpu_oversell 没生效就部署失败

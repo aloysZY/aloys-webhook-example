@@ -4,28 +4,29 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
-	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
-	"github.com/aloys.zy/aloys-webhook-example/internal/util"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
+	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
+	"github.com/aloys.zy/aloys-webhook-example/internal/util"
 )
 
 const (
 	CPUOversell = "cpu_oversell"
 )
 
-// MutateCPUOversell 处理节点的 AdmissionReview 请求
+// MutateCPUOversell 处理节点的 AdmissionReview 请求，根据 cpu_oversell 标签调整 allocatable.cpu
 func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
+	sugaredLogger := logger.WithName("MutateCPUOversell")
+
 	nodeResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}
 
 	// 检查请求是否针对节点资源
 	if ar.Request.Resource != nodeResource {
-		logger.WithName("Mutate Nodes").Errorf("expected resource to be %s", nodeResource)
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
@@ -34,53 +35,51 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 		}
 	}
 
-	// 解码传入的节点对象
-	raw := ar.Request.Object.Raw
-	node := corev1.Node{}
+	// 解码传入的节点对象,这个每次在请求的都是系统真实的数据，比如我们把allocatable.cpu修改了20，但是这里请求的时候还是4，因为当时分配的系统节点就是4C
+	var node corev1.Node
 	deserializer := setting.Codecs.UniversalDeserializer()
-	if _, _, err := deserializer.Decode(raw, nil, &node); err != nil {
-		logger.WithName("Mutate Nodes").Error(err)
+	if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &node); err != nil {
+		sugaredLogger.Error(err, "Failed to decode node object")
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 保存原始节点对象的副本，用于生成 Patch
 	originalNode := node.DeepCopy()
 
-	// 调用 shouldModifyAllocatableCPU 函数，检查是否需要修改 allocatable.cpu
+	// 检查是否需要修改 allocatable.cpu
 	shouldModify, newAllocatableCPU, err := shouldModifyAllocatableCPU(&node)
 	if err != nil {
-		logger.WithName("Mutate Nodes").Errorf("Error determining if CPU should be modified: %v", err)
-
-		// 如果注解不存在或者不是 "false"，修改为 "false"
+		// 如果标签无效或解析失败，设置 annotation 为 "false" 并允许请求通过
 		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "false")
-
-		// 生成 Patch 并返回，允许请求通过并包含警告信息
+		sugaredLogger.Warn("Invalid value for node-oversold-cpu label", "node", node.Name, "error", err)
 		return util.GeneratePatchAndResponse(
 			originalNode,
 			&node,
-			false,
+			true,
 			fmt.Sprintf("Warning: Invalid value for node-oversold-cpu label on node %s: %v", node.Name, err),
 			err.Error(),
 		)
 	}
 
-	// 如果需要修改 allocatable.cpu
-	if shouldModify && newAllocatableCPU != "" {
-		cpuValue, err := parseCPUStringToMilliCPU(newAllocatableCPU)
-		if err != nil {
-			logger.WithName("Mutate Nodes").Errorf("Error parsing new allocatable CPU value: %v", err)
-			return setting.ToV1AdmissionResponse(err)
+	// 在 shouldModify 为 false 的情况下，实际上并不是因为标签无效（即标签值格式错误或不符合预期），而是因为标签不存在或者根据标签计算后不需要修改 capacity.cpu。因此，而实际上只是不需要进行任何修改
+	if !shouldModify {
+		// 如果 annotation 不存在或不是 "false"，则设置为 "false"
+		if _, ok := node.Annotations[CPUOversell]; !ok || node.Annotations[CPUOversell] != "false" {
+			util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "false")
+			sugaredLogger.Info("Added or updated annotation with value 'false'.")
 		}
-
-		// 更新 allocatable.cpu 和注解
-		node.Status.Allocatable[corev1.ResourceCPU] = *resource.NewMilliQuantity(cpuValue, resource.DecimalSI)
-		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "true")
-		logger.WithName("Mutate Nodes").Infof("Modified allocatable cpu and annotation. %d", cpuValue)
-	} else if !shouldModify {
-		// 如果注解不存在或者不是 "false"，修改为 "false"
-		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "false")
-		logger.WithName("Mutate Nodes").Info("Added or updated annotation with value 'false'.")
+		return util.GeneratePatchAndResponse(originalNode, &node, true, "", "No changes needed for allocatable CPU")
 	}
+	// 将 allocatable.cpu 字符串转换为 milliCPU
+	newCPUValue, err := parseCPUStringToMilliCPU(newAllocatableCPU)
+	if err != nil {
+		sugaredLogger.Error(err, "Error parsing new allocatable CPU value")
+		return setting.ToV1AdmissionResponse(err)
+	}
+	// 更新 allocatable.cpu 和注解
+	node.Status.Allocatable[corev1.ResourceCPU] = *resource.NewMilliQuantity(newCPUValue, resource.DecimalSI)
+	util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "true")
+	sugaredLogger.Info("Modified allocatable cpu and annotation", "Allocatable_CPU: ", newCPUValue/1000)
 
 	// 生成 Patch 并返回，允许请求通过
 	return util.GeneratePatchAndResponse(originalNode, &node, true, "", "CPU oversell mutation applied")
@@ -88,87 +87,65 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 
 // shouldModifyAllocatableCPU 检查节点是否有特定的标签，并决定是否修改 allocatable.cpu
 func shouldModifyAllocatableCPU(node *corev1.Node) (bool, string, error) {
+	sugaredLogger := logger.WithName("shouldModifyAllocatableCPU")
+
 	// 检查标签是否存在
 	if labels := node.GetLabels(); labels != nil {
 		if oversoldCPU, ok := labels[CPUOversell]; ok {
 			// 尝试解析标签值为浮点数
 			multiplier, err := strconv.ParseFloat(oversoldCPU, 64)
-			if err != nil {
-				logger.WithName("Mutate Nodes").Errorf("Invalid value for node-oversold-cpu label: %s", oversoldCPU)
+			if err != nil || multiplier <= 0 {
+				sugaredLogger.Error(err, "Invalid value for node-oversold-cpu label", "value", oversoldCPU)
 				return false, "", fmt.Errorf("invalid value for node-oversold-cpu label: %v", err)
 			}
 
-			// 获取当前的 allocatable.cpu 值
-			currentCPU, isMilli, err := parseCPUQuantity(node.Status.Allocatable.Cpu())
+			// 获取当前的 capacity.cpu 值
+			capacityCPU, err := parseCPUQuantity(node.Status.Capacity.Cpu())
 			if err != nil {
-				logger.WithName("Mutate Nodes").Errorf("Error parsing current CPU value: %v", err)
+				sugaredLogger.Error(err, "Error parsing current CPU capacity")
 				return false, "", err
 			}
 
-			// 计算新的 allocatable.cpu 值
-			newCPU := currentCPU * multiplier * 1000
+			// 计算 allocatable.cpu 值
+			newAllocatableCPU := float64(capacityCPU.Value()) * multiplier
 
-			// 格式化为字符串，根据原始单位决定是否添加 "m"
-			newCPUFormatted := formatCPUMilliValue(newCPU, isMilli)
+			// 确保新的 allocatable 不超过合理范围
+			if math.IsNaN(newAllocatableCPU) || math.IsInf(newAllocatableCPU, 0) || newAllocatableCPU <= 0 {
+				sugaredLogger.Warn("Calculated allocatable CPU is out of reasonable range. Using original allocatable.")
+				// 如果不合理，就使用capacityCPU的值
+				newAllocatableCPU = float64(capacityCPU.Value())
+			}
+
+			// 格式化为字符串
+			newCPUFormatted := formatCPUMilliValue(newAllocatableCPU)
 
 			return true, newCPUFormatted, nil
 		}
 	}
 
-	// 如果标签不存在，返回 false 表示不修改 allocatable.cpu
+	// 如果标签不存在，返回 false 表示不修改 capacity.cpu
 	return false, "", nil
 }
 
-// parseCPUQuantity 解析 resource.Quantity 并返回 float64 表示的 milliCPU 数量和是否为毫核
-func parseCPUQuantity(cpuQty *resource.Quantity) (float64, bool, error) {
-	// 将 resource.Quantity 转换为 float64
-	cpuMilliValue, err := strconv.ParseFloat(cpuQty.String(), 64)
+// parseCPUQuantity 解析 resource.Quantity 并返回其值
+func parseCPUQuantity(cpuQty *resource.Quantity) (*resource.Quantity, error) {
+	cpuValue, err := resource.ParseQuantity(cpuQty.String())
 	if err != nil {
-		return 0, false, err
+		return nil, err
 	}
-
-	// 判断是否为毫核单位
-	isMilli := strings.HasSuffix(cpuQty.String(), "m")
-
-	// 如果不是毫核单位，则假设是 "cpu" 单位并乘以 1000 转换为毫核
-	if !isMilli {
-		cpuMilliValue *= 1000
-	}
-
-	return cpuMilliValue, isMilli, nil
+	return &cpuValue, nil
 }
 
-// formatCPUMilliValue 格式化 float64 表示的 milliCPU 数量为字符串，根据 isMilli 决定是否添加 "m" 单位
-func formatCPUMilliValue(cpuMilli float64, isMilli bool) string {
-	// 四舍五入到最接近的整数毫核
-	roundedMilli := math.Round(cpuMilli)
-
-	// 根据是否为毫核单位选择合适的格式
-	if isMilli {
-		return fmt.Sprintf("%dm", int64(roundedMilli))
-	} else {
-		// 转换回 "cpu" 单位
-		cpuValue := roundedMilli / 1000
-		return fmt.Sprintf("%.2f", cpuValue)
-	}
+// formatCPUMilliValue 格式化 float64 表示的 milliCPU 数量为字符串
+func formatCPUMilliValue(cpuMilli float64) string {
+	return fmt.Sprintf("%f", cpuMilli)
 }
 
 // parseCPUStringToMilliCPU 解析 CPU 字符串并转换为 milliCPU (int64)
 func parseCPUStringToMilliCPU(cpuStr string) (int64, error) {
-	// 尝试解析为浮点数
-	cpuFloat, err := strconv.ParseFloat(cpuStr, 64)
+	cpuValue, err := resource.ParseQuantity(cpuStr)
 	if err != nil {
 		return 0, err
 	}
-
-	// 四舍五入并转换为 int64
-	cpuInt64 := int64(math.Round(cpuFloat))
-
-	// 检查是否超出 int64 范围
-	if cpuInt64 < math.MinInt64 || cpuInt64 > math.MaxInt64 {
-		logger.WithName("Mutate Nodes").Errorf("CPU value out of int64 range.")
-		return 0, fmt.Errorf("CPU value out of int64 range")
-	}
-
-	return cpuInt64, nil
+	return cpuValue.MilliValue(), nil
 }
