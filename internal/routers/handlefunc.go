@@ -3,14 +3,14 @@ package routers
 import (
 	"net/http"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/controller"
 	"github.com/aloys.zy/aloys-webhook-example/internal/controller/back"
+	"github.com/aloys.zy/aloys-webhook-example/internal/controller/cpu_oversell"
 	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
 )
 
 // ServeMutateCPUOversell 修改Node cpu
 func ServeMutateCPUOversell(writer http.ResponseWriter, request *http.Request) {
-	serve(writer, request, setting.NewDelegateToV1AdmitHandler(controller.MutateCPUOversell))
+	serve(writer, request, setting.NewDelegateToV1AdmitHandler(cpu_oversell.MutateCPUOversell))
 }
 
 // ServeAlwaysAllowDelayFiveSeconds 传入请求参数

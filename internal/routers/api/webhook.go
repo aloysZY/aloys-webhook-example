@@ -9,13 +9,14 @@ import (
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/metrics"
 	"github.com/aloys.zy/aloys-webhook-example/internal/routers"
+	"go.uber.org/zap"
 )
 
 func WebhookStart(config configs.Configs) *http.Server {
-	sugaredLogger := logger.WithName("webhook Start")
+	lg := logger.WithName("webhook Start")
 
 	// 创建 HTTP 服务器多路复用器并注册处理函数
-	sugaredLogger.Debug("Creating HTTP server mux for webhook endpoints")
+	lg.Debug("Creating HTTP server mux for webhook endpoints")
 	webhook := http.NewServeMux()
 
 	// 注册各个 webhook 处理函数，并包裹上 metrics 中间件
@@ -39,7 +40,12 @@ func WebhookStart(config configs.Configs) *http.Server {
 	for endpoint, handlerName := range endpoints {
 		handlerFunc := metrics.WithMetrics(getHandlerFuncByName(handlerName))
 		webhook.HandleFunc(endpoint, handlerFunc)
-		sugaredLogger.Info("Registered webhook endpoint:", endpoint, "with handler:", handlerName)
+		lg.Info(
+			"Registered webhook endpoint",
+			zap.String("endpoint", endpoint),   // 键值对：endpoint
+			zap.String("handler", handlerName), // 键值对：handler
+		)
+
 	}
 
 	// 创建并配置 HTTP 服务器
@@ -53,17 +59,18 @@ func WebhookStart(config configs.Configs) *http.Server {
 		MaxHeaderBytes: 1 << 20, // 1MB
 	}
 
-	sugaredLogger.Info("Starting webhook server on port:", configs.WebhookPort)
+	lg.Info("Starting webhook server on port:",
+		zap.Int("port:", configs.WebhookPort))
 
 	// 启动服务
 	go func() {
-		defer sugaredLogger.Info("Webhook server goroutine has exited")
+		defer lg.Info("Webhook server goroutine has exited")
 		err := webhookServer.ListenAndServeTLS("", "")
 		if err != nil && err != http.ErrServerClosed {
-			sugaredLogger.Error("Failed to listen and serve webhook server:", err)
+			lg.Error("Failed to listen and serve webhook server:", zap.Error(err))
 			panic(err)
 		} else if err == http.ErrServerClosed {
-			sugaredLogger.Info("Webhook server closed gracefully")
+			lg.Info("Webhook server closed gracefully")
 		}
 	}()
 
@@ -102,7 +109,8 @@ func getHandlerFuncByName(name string) http.HandlerFunc {
 	// case "ServeValidatePodContainerLimit":
 	// 	return handlefunc.ServeValidatePodContainerLimit
 	default:
-		logger.WithName("webhook Start").Warn("Unknown handler name:", name)
+		logger.WithName("webhook Start").Warn("Unknown handler name",
+			zap.String("name", name))
 		return nil
 	}
 }

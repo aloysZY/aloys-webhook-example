@@ -27,7 +27,9 @@ import (
 	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/routers/api"
+	"github.com/aloys.zy/aloys-webhook-example/internal/util"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 	// "k8s.io/log/v2"
 	// TODO: try this library to see if it generates correct json patch
 	// https://github.com/mattbaird/jsonpatch
@@ -46,44 +48,48 @@ in the Kubernetes cluster to register remote webhook-template admission controll
 		// 将字符串形式的日志级别转换为 zapcore.Level
 		logLevel, err := logger.ParseLogLevel(configs.LogLevel)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid log level specified: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "Invalid log level specified: %v\n", err)
 			os.Exit(1)
 		}
 		// 初始化日志记录器
 		if err := logger.Init(logLevel); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 			os.Exit(1)
 		}
+		lg := logger.WithName("global.Init")
 
-		sugaredLogger := logger.WithName("global.Init")
-		sugaredLogger.Info("Logger initialized successfully")
-		sugaredLogger.Info("Global variables initialized with values:")
-		sugaredLogger.Infof("LogLevel: %s", configs.LogLevel)
-		sugaredLogger.Infof("CertFile: %s", configs.CertFile)
-		sugaredLogger.Infof("KeyFile: %s", configs.KeyFile)
-		sugaredLogger.Infof("WebhookPort: %d", configs.WebhookPort)
-		sugaredLogger.Infof("MetricsPort: %d", configs.MetricsPort)
+		clientSet := util.GetClientSet()
+		util.InitializeEventRecorder(clientSet)
 
-		sugaredLogger = logger.WithName("main")
+		lg.Info(
+			"Global variables initialized with values:", // 日志消息
+			zap.String("logLevel", configs.LogLevel),    // 键值对：日志级别
+			zap.String("certFile", configs.CertFile),    // 键值对：证书文件路径
+			zap.String("keyFile", configs.KeyFile),      // 键值对：私钥文件路径
+			zap.Int("webhookPort", configs.WebhookPort), // 键值对：Webhook 端口
+			zap.Int("metricsPort", configs.MetricsPort), // 键值对：Metrics 端口
+		)
+
+		lg = logger.WithName("main")
 		// 加载证书
 		configs := configs.Configs{
 			CertFile: configs.CertFile,
 			KeyFile:  configs.KeyFile,
 		}
-		sugaredLogger.Debug("Loading TLS certificate and private key files")
+		lg.Debug("Loading TLS certificate and private key files")
 
 		// 启动服务
 		metricsServer := api.MetricsStart(configs)
 		webhookServer := api.WebhookStart(configs)
 
-		sugaredLogger.Info("Metrics and webhook servers started successfully")
+		lg.Info("Metrics and webhook servers started successfully")
 
 		// hang
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 		// 接收到 os shutdown signal 后，关闭server
 		<-signalChan
-		sugaredLogger.Warn("Got OS shutdown signal, shutting down webhook-template server gracefully...")
+		lg.Warn("Got OS shutdown signal, shutting down webhook-template server gracefully...")
 
 		// 创建上下文，带有时限
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -91,16 +97,16 @@ in the Kubernetes cluster to register remote webhook-template admission controll
 
 		// 关闭webhook服务器
 		if err := webhookServer.Shutdown(ctx); err != nil {
-			sugaredLogger.Error("Error shutting down webhook server:", err)
+			lg.Error("Error shutting down webhook server:", zap.Error(err))
 		} else {
-			sugaredLogger.Info("Webhook server shut down successfully")
+			lg.Info("Webhook server shut down successfully")
 		}
 
 		// 关闭metrics服务器
 		if err := metricsServer.Shutdown(ctx); err != nil {
-			sugaredLogger.Error("Error shutting down metrics server:", err)
+			lg.Error("Error shutting down metrics server:", zap.Error(err))
 		} else {
-			sugaredLogger.Info("Metrics server shut down successfully")
+			lg.Info("Metrics server shut down successfully")
 		}
 	},
 }
@@ -122,9 +128,8 @@ func init() {
 func main() {
 	// 解析 goflags 子命令的 flagset，要先解析
 	if err := CmdWebhook.Execute(); err != nil {
-		// 如果解析 flagset 出错，将 panic 并将 error 信息输出到 sugaredLogger
-		fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+		// 如果解析 flagset 出错，将 panic 并将 error 信息输出到 lg
+		_, _ = fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
 		os.Exit(1)
 	}
-
 }

@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
+	"go.uber.org/zap"
 )
 
 var (
@@ -22,19 +23,20 @@ type Configs struct {
 }
 
 func ConfigTLS(configs Configs) *tls.Config {
-	sugaredLogger := logger.WithName("global.ConfigTLS")
+	lg := logger.WithName("global.ConfigTLS")
 
 	// Log the paths of the certificate and key files
-	sugaredLogger.Debug("Loading TLS certificate and private key from files")
-	sugaredLogger.Debugf("CertFile: %s", configs.CertFile)
-	sugaredLogger.Debugf("KeyFile: %s", configs.KeyFile)
+	lg.Debug("Loading TLS certificate and private key from files",
+		zap.String("CertFile", configs.CertFile),
+		zap.String("KeyFile", configs.KeyFile),
+	)
 
 	// Load the X509 key pair
 	sCert, err := tls.LoadX509KeyPair(configs.CertFile, configs.KeyFile)
 	if err != nil {
-		sugaredLogger.Fatal("Failed to load TLS certificate and private key:", err)
+		lg.Fatal("Failed to load TLS certificate and private key:", zap.Error(err))
 	}
-	sugaredLogger.Info("TLS certificate and private key loaded successfully")
+	lg.Info("TLS certificate and private key loaded successfully")
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{sCert},
@@ -43,8 +45,9 @@ func ConfigTLS(configs Configs) *tls.Config {
 	}
 
 	// Optionally log the resulting TLS configuration (excluding sensitive information)
-	sugaredLogger.Debug("TLS configuration created successfully")
-	sugaredLogger.Debugf("Certificates count: %d", len(tlsConfig.Certificates))
+	lg.Debug("TLS configuration created successfully",
+		zap.Int("Certificates count:", len(tlsConfig.Certificates)),
+	)
 
 	return tlsConfig
 }

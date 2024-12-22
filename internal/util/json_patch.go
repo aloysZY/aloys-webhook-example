@@ -4,6 +4,7 @@ import (
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
 	"github.com/mattbaird/jsonpatch"
+	"go.uber.org/zap"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,33 +13,33 @@ import (
 
 // GeneratePatchAndResponse 生成 JSON Patch 并返回 AdmissionResponse
 func GeneratePatchAndResponse(originalNode, modifiedNode *corev1.Node, allowed bool, warning, message string) *admissionv1.AdmissionResponse {
-	sugaredLogger := logger.WithName("util.GeneratePatchAndResponse")
+	lg := logger.WithName("util.GeneratePatchAndResponse")
 
 	// 序列化原始节点对象
 	originalNodeBytes, err := marshalNode(originalNode)
 	if err != nil {
-		sugaredLogger.Errorf("failed to marshal originalNode to JSON: %v", err)
+		lg.Error("failed to marshal originalNode to JSON: %v", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 序列化修改后的节点对象
 	modifiedNodeBytes, err := marshalNode(modifiedNode)
 	if err != nil {
-		sugaredLogger.Errorf("failed to marshal modified node to JSON: %v", err)
+		lg.Error("failed to marshal modified node to JSON: %v", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 生成 JSON Patch
 	patch, err := createJSONPatch(originalNodeBytes, modifiedNodeBytes)
 	if err != nil {
-		sugaredLogger.Errorf("failed to create JSON patch: %v", err)
+		lg.Error("failed to create JSON patch: %v", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 序列化 JSON Patch
 	patchBytes, err := marshalPatch(patch)
 	if err != nil {
-		sugaredLogger.Errorf("failed to marshal JSON patch: %v", err)
+		lg.Error("failed to marshal JSON patch: %v", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
 

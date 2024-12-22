@@ -8,13 +8,14 @@ import (
 	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 )
 
 func MetricsStart(config configs.Configs) *http.Server {
-	sugaredLogger := logger.WithName("metrics")
+	lg := logger.WithName("metrics")
 
 	// 启动metrics服务器
-	sugaredLogger.Debug("Creating HTTP server mux for metrics endpoints")
+	lg.Debug("Creating HTTP server mux for metrics endpoints")
 	metricsMux := http.NewServeMux()
 	metricsMux.Handle("/metrics", promhttp.Handler())
 
@@ -23,15 +24,15 @@ func MetricsStart(config configs.Configs) *http.Server {
 		startTime := time.Now()
 		w.Write([]byte("ok"))
 		// 记录请求完成的日志
-		sugaredLogger.Infow(
+		lg.Info(
 			"Request completed",
-			"method", req.Method,
-			"url", req.URL.String(),
-			"remoteAddr", req.RemoteAddr,
-			"userAgent", req.UserAgent(),
-			"path", req.RequestURI,
-			"status", http.StatusOK,
-			"elapsed_time", time.Since(startTime),
+			zap.String("method", req.Method),
+			zap.String("url", req.URL.String()),
+			zap.String("remoteAddr", req.RemoteAddr),
+			zap.String("userAgent", req.UserAgent()),
+			zap.String("path", req.RequestURI),
+			zap.Int("status", http.StatusOK),
+			zap.Duration("elapsed_time", time.Since(startTime)),
 		)
 	}
 
@@ -52,14 +53,14 @@ func MetricsStart(config configs.Configs) *http.Server {
 		MaxHeaderBytes: 1 << 20, // 1MB
 	}
 
-	sugaredLogger.Info("Starting metrics server on port", configs.MetricsPort)
+	lg.Info("Starting metrics server on port", zap.Int("port:", configs.MetricsPort))
 
 	go func() {
-		defer sugaredLogger.Info("Metrics server goroutine has exited")
+		defer lg.Info("Metrics server goroutine has exited")
 
 		err := metricsServer.ListenAndServeTLS("", "")
 		if err != nil && err != http.ErrServerClosed {
-			sugaredLogger.Error("Failed to listen and serve metrics server:", err)
+			lg.Error("Failed to listen and serve metrics server:", zap.Error(err))
 			panic(err)
 		}
 	}()

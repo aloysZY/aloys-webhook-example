@@ -3,12 +3,14 @@ package logger
 import (
 	"fmt"
 
+	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
-	sugar       *zap.SugaredLogger
+	logger      *zap.Logger
 	initialized = false
 )
 
@@ -26,7 +28,8 @@ func Init(logLevel zapcore.Level) error {
 	// 设置日志级别
 	config.Level = zap.NewAtomicLevelAt(logLevel)
 
-	logger, err := config.Build(
+	var err error
+	logger, err = config.Build(
 		zap.AddCaller(),                   // 添加调用者信息（文件名和行号）
 		zap.AddStacktrace(zap.ErrorLevel), // 在 ErrorLevel 及以上级别添加堆栈跟踪
 	)
@@ -34,8 +37,10 @@ func Init(logLevel zapcore.Level) error {
 		return fmt.Errorf("failed to initialize logger: %v", err)
 	}
 
-	sugar = logger.Sugar()
 	initialized = true
+
+	// 设置 controller-runtime 的全局日志记录器
+	log.SetLogger(zapr.NewLogger(logger))
 
 	// 确保在程序退出时同步日志
 	defer func() {
@@ -47,14 +52,15 @@ func Init(logLevel zapcore.Level) error {
 	return nil
 }
 
-// WithName 返回带有指定组件名称的日志记录器
-func WithName(name string) *zap.SugaredLogger {
+// WithName 返回带有指定组件名称的日志记录器，符合 zap.Logger 接口
+func WithName(name string) *zap.Logger {
 	if !initialized {
 		panic("logger not initialized")
 	}
-	return sugar.With(zap.String("component", name))
+	return logger.With(zap.String("component", name))
 }
 
+// ParseLogLevel 将字符串形式的日志级别解析为 zapcore.Level
 func ParseLogLevel(logLevelStr string) (zapcore.Level, error) {
 	switch logLevelStr {
 	case "debug":
@@ -74,4 +80,12 @@ func ParseLogLevel(logLevelStr string) (zapcore.Level, error) {
 	default:
 		return zap.InfoLevel, fmt.Errorf("invalid log level: %s", logLevelStr)
 	}
+}
+
+// GetLogger 返回全局的 zap.Logger
+func GetLogger() *zap.Logger {
+	if !initialized {
+		panic("logger not initialized")
+	}
+	return logger
 }

@@ -1,6 +1,7 @@
 package setting
 
 import (
+	"go.uber.org/zap"
 	admissionv1 "k8s.io/api/admission/v1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,7 +80,7 @@ func ToV1AdmissionResponse(err error) *admissionv1.AdmissionResponse {
 		return &admissionv1.AdmissionResponse{Allowed: true}
 	}
 
-	sugaredLogger.Info("Creating AdmissionResponse from error:", err.Error())
+	sugaredLogger.Info("Creating AdmissionResponse from error:", zap.Error(err))
 	return &admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),

@@ -1,10 +1,11 @@
-package controller
+package cpu_oversell
 
 import (
 	"fmt"
 	"math"
 	"strconv"
 
+	"go.uber.org/zap"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -21,12 +22,14 @@ const (
 
 // MutateCPUOversell 处理节点的 AdmissionReview 请求，根据 cpu_oversell 标签调整 allocatable.cpu
 func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
-	sugaredLogger := logger.WithName("MutateCPUOversell")
+	lg := logger.WithName("MutateCPUOversell")
 
 	nodeResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "nodes"}
 
 	// 检查请求是否针对节点资源
 	if ar.Request.Resource != nodeResource {
+		util.EventRecorder().Eventf(nil, corev1.EventTypeWarning, "InvalidResource", fmt.Sprintf("expected resource to be %s", nodeResource))
+		lg.Error("InvalidResource", zap.Any("expected resource to be ", nodeResource))
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
@@ -39,7 +42,8 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	var node corev1.Node
 	deserializer := setting.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &node); err != nil {
-		sugaredLogger.Error(err, "Failed to decode node object")
+		util.EventRecorder().Event(nil, corev1.EventTypeWarning, "DecodeError", "Failed to decode node object")
+		lg.Error("Failed to decode node object", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
 
@@ -51,12 +55,16 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	if err != nil {
 		// 如果标签无效或解析失败，设置 annotation 为 "false" 并允许请求通过
 		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "false")
-		sugaredLogger.Warn("Invalid value for node-oversold-cpu label", "node", node.Name, "error", err)
+		util.EventRecorder().Event(&node, corev1.EventTypeWarning, "Modified", fmt.Sprintf("Invalid value for %s label on node %s: %v", CPUOversell, node.Name, err))
+		lg.Warn("Invalid value for label",
+			zap.String(CPUOversell, "false"),
+			zap.String("node", node.Name),
+			zap.Error(err))
 		return util.GeneratePatchAndResponse(
 			originalNode,
 			&node,
 			true,
-			fmt.Sprintf("Warning: Invalid value for node-oversold-cpu label on node %s: %v", node.Name, err),
+			fmt.Sprintf("Warning: Invalid value for %s label on node %s: %v", CPUOversell, node.Name, err),
 			err.Error(),
 		)
 	}
@@ -66,20 +74,26 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 		// 如果 annotation 不存在或不是 "false"，则设置为 "false"
 		if _, ok := node.Annotations[CPUOversell]; !ok || node.Annotations[CPUOversell] != "false" {
 			util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "false")
-			sugaredLogger.Info("Added or updated annotation with value 'false'.")
+			util.EventRecorder().Event(&node, corev1.EventTypeNormal, "Modified", "Added or updated annotation with value 'false'.")
+			lg.Info("Added or updated annotation with value 'false'.", zap.String("Node Name", node.Name))
+			return util.GeneratePatchAndResponse(originalNode, &node, true, "", "Added or updated annotation with value 'false'.")
 		}
+		util.EventRecorder().Event(&node, corev1.EventTypeNormal, "NoModification", "No changes needed for allocatable CPU")
+		lg.Info("No changes needed for allocatable CPU", zap.String("Node Name", node.Name))
 		return util.GeneratePatchAndResponse(originalNode, &node, true, "", "No changes needed for allocatable CPU")
 	}
 	// 将 allocatable.cpu 字符串转换为 milliCPU
 	newCPUValue, err := parseCPUStringToMilliCPU(newAllocatableCPU)
 	if err != nil {
-		sugaredLogger.Error(err, "Error parsing new allocatable CPU value")
+		util.EventRecorder().Event(&node, corev1.EventTypeWarning, "ParseError", "Error parsing new allocatable CPU value")
+		lg.Error("Error parsing new allocatable CPU value", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
 	// 更新 allocatable.cpu 和注解
 	node.Status.Allocatable[corev1.ResourceCPU] = *resource.NewMilliQuantity(newCPUValue, resource.DecimalSI)
 	util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "true")
-	sugaredLogger.Info("Modified allocatable cpu and annotation", "Allocatable_CPU: ", newCPUValue/1000)
+	util.EventRecorder().Event(&node, corev1.EventTypeNormal, "Modified", fmt.Sprintf("Allocatable CPU updated to %d cores,Annotation %s updated to %s ", newCPUValue/1000, CPUOversell, "true"))
+	lg.Info("Modified allocatable cpu and annotation", zap.Int64("Allocatable_CPU: ", newCPUValue/1000), zap.String(CPUOversell, "true"))
 
 	// 生成 Patch 并返回，允许请求通过
 	return util.GeneratePatchAndResponse(originalNode, &node, true, "", "CPU oversell mutation applied")
@@ -87,7 +101,7 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 
 // shouldModifyAllocatableCPU 检查节点是否有特定的标签，并决定是否修改 allocatable.cpu
 func shouldModifyAllocatableCPU(node *corev1.Node) (bool, string, error) {
-	sugaredLogger := logger.WithName("shouldModifyAllocatableCPU")
+	lg := logger.WithName("shouldModifyAllocatableCPU")
 
 	// 检查标签是否存在
 	if labels := node.GetLabels(); labels != nil {
@@ -95,14 +109,17 @@ func shouldModifyAllocatableCPU(node *corev1.Node) (bool, string, error) {
 			// 尝试解析标签值为浮点数
 			multiplier, err := strconv.ParseFloat(oversoldCPU, 64)
 			if err != nil || multiplier <= 0 {
-				sugaredLogger.Error(err, "Invalid value for node-oversold-cpu label", "value", oversoldCPU)
+				lg.Error("Invalid value for node-oversold-cpu label",
+					zap.String("value", oversoldCPU),
+					zap.Error(err),
+				)
 				return false, "", fmt.Errorf("invalid value for node-oversold-cpu label: %v", err)
 			}
 
 			// 获取当前的 capacity.cpu 值
 			capacityCPU, err := parseCPUQuantity(node.Status.Capacity.Cpu())
 			if err != nil {
-				sugaredLogger.Error(err, "Error parsing current CPU capacity")
+				lg.Error("Error parsing current CPU capacity", zap.Error(err))
 				return false, "", err
 			}
 
@@ -111,7 +128,7 @@ func shouldModifyAllocatableCPU(node *corev1.Node) (bool, string, error) {
 
 			// 确保新的 allocatable 不超过合理范围
 			if math.IsNaN(newAllocatableCPU) || math.IsInf(newAllocatableCPU, 0) || newAllocatableCPU <= 0 {
-				sugaredLogger.Warn("Calculated allocatable CPU is out of reasonable range. Using original allocatable.")
+				lg.Warn("Calculated allocatable CPU is out of reasonable range. Using original allocatable.")
 				// 如果不合理，就使用capacityCPU的值
 				newAllocatableCPU = float64(capacityCPU.Value())
 			}
