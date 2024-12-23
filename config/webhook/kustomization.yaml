@@ -3,6 +3,7 @@ resources:
 - service.yaml
 #新增规则进行追加
 - cpu_oversell/cpu_oversell.yaml
+- pod_dns/pod_dns.yaml
 
 configurations:
 - kustomizeconfig.yaml

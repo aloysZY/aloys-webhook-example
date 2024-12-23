@@ -14,31 +14,31 @@ patches:
     target:
       kind: Certificate
   - patch: |
-      #这里也要注意，如果有多个需要修改的，就添加多个
-      #现在这些变成单独的名称了，就不需要学多个了
       - op: "add"
         path: "/webhooks/0/clientConfig/url"
         value: "https://172.20.10.2:9443/mutating-cpu-oversell"
     target:
       kind: MutatingWebhookConfiguration
-#  - patch: |
-#      #这里也要注意，如果有多个需要修改的，就添加多个
-#      #现在这些变成单独的名称了，就不需要学多个了
+      name: aloys-webhook-mutating-cpu-oversell
+  - patch: |
+      - op: "add"
+        path: "/webhooks/0/clientConfig/url"
+        value: "https://172.20.10.2:9443/mutating-pod-dns"
+    target:
+      kind: MutatingWebhookConfiguration
+      name: aloys-webhook-mutating-pod-dns
+  #  - patch: |
 #      - op: "add"
 #        path: "/webhooks/0/clientConfig/url"
 #        value: "https://172.20.10.2:9443/validate-apps-aloys-cn-v1-application"
 #    target:
 #      kind: ValidatingWebhookConfiguration
   - patch: |
-      #这里也要注意，如果有多个需要修改的，就添加多个
-      #现在这些变成单独的名称了，就不需要学多个了
       - op: "remove"
         path: "/webhooks/0/clientConfig/service"
     target:
       kind: MutatingWebhookConfiguration
 #  - patch: |
-#      #这里也要注意，如果有多个需要修改的，就添加多个
-#      #现在这些变成单独的名称了，就不需要学多个了
 #      - op: "remove"
 #        path: "/webhooks/0/clientConfig/service"
 #    target:

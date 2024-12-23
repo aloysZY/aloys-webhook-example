@@ -5,12 +5,18 @@ import (
 
 	"github.com/aloys.zy/aloys-webhook-example/internal/controller/back"
 	"github.com/aloys.zy/aloys-webhook-example/internal/controller/cpu_oversell"
+	"github.com/aloys.zy/aloys-webhook-example/internal/controller/pod_dns"
 	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
 )
 
 // ServeMutateCPUOversell 修改Node cpu
 func ServeMutateCPUOversell(writer http.ResponseWriter, request *http.Request) {
 	serve(writer, request, setting.NewDelegateToV1AdmitHandler(cpu_oversell.MutateCPUOversell))
+}
+
+// MutatePodDNSConfig pod创建追加DNS配置
+func MutatePodDNSConfig(writer http.ResponseWriter, request *http.Request) {
+	serve(writer, request, setting.NewDelegateToV1AdmitHandler(pod_dns.MutatePodDNSConfig))
 }
 
 // ServeAlwaysAllowDelayFiveSeconds 传入请求参数

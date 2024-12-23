@@ -28,21 +28,14 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 
 	// 检查请求是否针对节点资源
 	if ar.Request.Resource != nodeResource {
-		util.EventRecorder().Eventf(nil, corev1.EventTypeWarning, "InvalidResource", fmt.Sprintf("expected resource to be %s", nodeResource))
 		lg.Error("InvalidResource", zap.Any("expected resource to be ", nodeResource))
-		return &admissionv1.AdmissionResponse{
-			Allowed: false,
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("expected resource to be %s", nodeResource),
-			},
-		}
+		return util.GeneratePatchAndResponse(nil, nil, false, "", fmt.Sprintf("expected resource to be %s", nodeResource))
 	}
 
 	// 解码传入的节点对象,这个每次在请求的都是系统真实的数据，比如我们把allocatable.cpu修改了20，但是这里请求的时候还是4，因为当时分配的系统节点就是4C
 	var node corev1.Node
 	deserializer := setting.Codecs.UniversalDeserializer()
 	if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &node); err != nil {
-		util.EventRecorder().Event(nil, corev1.EventTypeWarning, "DecodeError", "Failed to decode node object")
 		lg.Error("Failed to decode node object", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
@@ -55,7 +48,7 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	if err != nil {
 		// 如果标签无效或解析失败，设置 annotation 为 "false" 并允许请求通过
 		util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "false")
-		util.EventRecorder().Event(&node, corev1.EventTypeWarning, "Modified", fmt.Sprintf("Invalid value for %s label on node %s: %v", CPUOversell, node.Name, err))
+		util.EventRecorder().Eventf(&node, corev1.EventTypeWarning, "Modified", "Invalid value for %s label on node %s: %v", CPUOversell, node.Name, err)
 		lg.Warn("Invalid value for label",
 			zap.String(CPUOversell, "false"),
 			zap.String("node", node.Name),
@@ -74,25 +67,25 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 		// 如果 annotation 不存在或不是 "false"，则设置为 "false"
 		if _, ok := node.Annotations[CPUOversell]; !ok || node.Annotations[CPUOversell] != "false" {
 			util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "false")
-			util.EventRecorder().Event(&node, corev1.EventTypeNormal, "Modified", "Added or updated annotation with value 'false'.")
+			util.EventRecorder().Eventf(&node, corev1.EventTypeNormal, "Modified", "Added or updated annotation %s with value 'false', Node Name: %s", CPUOversell, node.Name)
 			lg.Info("Added or updated annotation with value 'false'.", zap.String("Node Name", node.Name))
 			return util.GeneratePatchAndResponse(originalNode, &node, true, "", "Added or updated annotation with value 'false'.")
 		}
-		util.EventRecorder().Event(&node, corev1.EventTypeNormal, "NoModification", "No changes needed for allocatable CPU")
+		util.EventRecorder().Eventf(&node, corev1.EventTypeNormal, "NoModification", "No changes needed for allocatable CPU. Node name: %s", node.Name)
 		lg.Info("No changes needed for allocatable CPU", zap.String("Node Name", node.Name))
 		return util.GeneratePatchAndResponse(originalNode, &node, true, "", "No changes needed for allocatable CPU")
 	}
 	// 将 allocatable.cpu 字符串转换为 milliCPU
 	newCPUValue, err := parseCPUStringToMilliCPU(newAllocatableCPU)
 	if err != nil {
-		util.EventRecorder().Event(&node, corev1.EventTypeWarning, "ParseError", "Error parsing new allocatable CPU value")
+		util.EventRecorder().Eventf(&node, corev1.EventTypeWarning, "ParseError", "Error parsing new allocatable CPU value. Node Name: %s", node.Name)
 		lg.Error("Error parsing new allocatable CPU value", zap.Error(err))
 		return setting.ToV1AdmissionResponse(err)
 	}
 	// 更新 allocatable.cpu 和注解
 	node.Status.Allocatable[corev1.ResourceCPU] = *resource.NewMilliQuantity(newCPUValue, resource.DecimalSI)
 	util.UpdateAnnotationForInvalidLabel(&node, CPUOversell, "true")
-	util.EventRecorder().Event(&node, corev1.EventTypeNormal, "Modified", fmt.Sprintf("Allocatable CPU updated to %d cores,Annotation %s updated to %s ", newCPUValue/1000, CPUOversell, "true"))
+	util.EventRecorder().Eventf(&node, corev1.EventTypeNormal, "Modified", "Allocatable CPU updated to %d cores,Annotation %s updated to 'true'.", newCPUValue/1000, CPUOversell)
 	lg.Info("Modified allocatable cpu and annotation", zap.Int64("Allocatable_CPU: ", newCPUValue/1000), zap.String(CPUOversell, "true"))
 
 	// 生成 Patch 并返回，允许请求通过

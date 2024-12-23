@@ -22,6 +22,7 @@ func WebhookStart(config configs.Configs) *http.Server {
 	// 注册各个 webhook 处理函数，并包裹上 metrics 中间件
 	endpoints := map[string]string{
 		"/mutating-cpu-oversell": "ServeMutateCPUOversell",
+		"/mutating-pod-dns":      "MutatePodDNSConfig",
 		// "/always-allow-delay-5s":    "ServeAlwaysAllowDelayFiveSeconds",
 		// "/always-deny":              "ServeAlwaysDeny",
 		// "/add-label":                "ServeAddLabel",
@@ -82,6 +83,8 @@ func getHandlerFuncByName(name string) http.HandlerFunc {
 	switch name {
 	case "ServeMutateCPUOversell":
 		return routers.ServeMutateCPUOversell
+	case "MutatePodDNSConfig":
+		return routers.MutatePodDNSConfig
 	case "ServeAlwaysAllowDelayFiveSeconds":
 		return routers.ServeAlwaysAllowDelayFiveSeconds
 	case "ServeAlwaysDeny":

@@ -214,7 +214,7 @@ kind: MutatingWebhookConfiguration
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: aloys-webhook-system/aloys-webhook-serving-cert
-  name: aloys-webhook-cpu-oversell
+  name: aloys-webhook-mutating-cpu-oversell
 webhooks:
 - admissionReviewVersions:
   - v1
@@ -228,10 +228,42 @@ webhooks:
     - ""
     apiVersions:
     - v1
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
     resources:
     - nodes
     - nodes/status
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: aloys-webhook-system/aloys-webhook-serving-cert
+  name: aloys-webhook-mutating-pod-dns
+webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    url: https://172.20.10.2:9443/mutating-pod-dns
+  failurePolicy: Fail
+  name: mutating-pod-dns.kb.io
+  namespaceSelector:
+    matchExpressions:
+    - key: exclude-webhook-podDns
+      operator: DoesNotExist
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pods
   sideEffects: None
