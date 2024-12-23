@@ -15,6 +15,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// MutatePodDNSConfig 这是获取集群信息进行注入的方式
 func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 	lg := logger.WithName("MutatePodDNSConfig")
 
