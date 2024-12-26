@@ -16,7 +16,7 @@ import (
 // 只返回一个错误。
 func GetControllerName(pod *corev1.Pod, reason, message string) error {
 	lg := logger.WithName("GetControllerName")
-	clientset := GetClientSet()
+	clientSet := GetClientSet()
 	// 获取 Pod 名称，优先使用 pod.Name，如果为空则使用 GenerateName
 	podName := pod.Name
 	if podName == "" {
@@ -28,7 +28,7 @@ func GetControllerName(pod *corev1.Pod, reason, message string) error {
 		switch owner.Kind {
 		case "ReplicaSet":
 			// ReplicaSet 通常是 Deployment 创建的，需要进一步查找 Deployment
-			rs, err := clientset.AppsV1().ReplicaSets(pod.Namespace).Get(context.Background(), owner.Name, metav1.GetOptions{})
+			rs, err := clientSet.AppsV1().ReplicaSets(pod.Namespace).Get(context.Background(), owner.Name, metav1.GetOptions{})
 			if err != nil {
 				lg.Error("Failed to get ReplicaSet", zap.Error(err), zap.String("replicaSet", owner.Name))
 				return fmt.Errorf("failed to get ReplicaSet: %v", err)
@@ -42,7 +42,7 @@ func GetControllerName(pod *corev1.Pod, reason, message string) error {
 						deploymentName := parts[0]
 
 						// 获取 Deployment
-						dep, err := clientset.AppsV1().Deployments(pod.Namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
+						dep, err := clientSet.AppsV1().Deployments(pod.Namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
 						if err != nil {
 							lg.Error("Failed to get Deployment", zap.Error(err), zap.String("deployment", deploymentName))
 							return fmt.Errorf("failed to get Deployment: %v", err)
@@ -86,39 +86,32 @@ func GetControllerName(pod *corev1.Pod, reason, message string) error {
 			}
 
 		case "Job":
-			parts := strings.Split(owner.Name, "-")
-			if len(parts) > 0 {
-				jobName := parts[0]
-
-				// 获取 Job
-				job, err := clientset.BatchV1().Jobs(pod.Namespace).Get(context.TODO(), jobName, metav1.GetOptions{})
-				if err != nil {
-					lg.Error("Failed to get Job", zap.Error(err), zap.String("job", jobName))
-					return fmt.Errorf("failed to get Job: %v", err)
-				}
-
-				// 记录事件
-				EventRecorder().Eventf(
-					job,
-					corev1.EventTypeNormal,
-					reason,
-					message,
-				)
-
-				lg.Info("Logged event for Job", zap.String("job", job.Name))
-				return nil
-			} else {
-				lg.Warn("Failed to split Job name", zap.String("name", owner.Name))
-				return fmt.Errorf("failed to split Job name: %s", owner.Name)
+			jobName := owner.Name
+			// 获取 Job
+			job, err := clientSet.BatchV1().Jobs(pod.Namespace).Get(context.TODO(), jobName, metav1.GetOptions{})
+			if err != nil {
+				lg.Error("Failed to get Job", zap.Error(err), zap.String("job", jobName))
+				return fmt.Errorf("failed to get Job: %v", err)
 			}
+
+			// 记录事件
+			EventRecorder().Eventf(
+				job,
+				corev1.EventTypeNormal,
+				reason,
+				message,
+			)
+
+			lg.Info("Logged event for Job", zap.String("job", job.Name))
+			return nil
 
 		case "StatefulSet":
 			parts := strings.Split(owner.Name, "-")
 			if len(parts) > 0 {
-				statefulSetName := parts[0]
+				statefulSetName := parts[0] + "-" + parts[1]
 
 				// 获取 StatefulSet
-				sts, err := clientset.AppsV1().StatefulSets(pod.Namespace).Get(context.TODO(), statefulSetName, metav1.GetOptions{})
+				sts, err := clientSet.AppsV1().StatefulSets(pod.Namespace).Get(context.TODO(), statefulSetName, metav1.GetOptions{})
 				if err != nil {
 					lg.Error("Failed to get StatefulSet", zap.Error(err), zap.String("statefulSet", statefulSetName))
 					return fmt.Errorf("failed to get StatefulSet: %v", err)
@@ -140,27 +133,19 @@ func GetControllerName(pod *corev1.Pod, reason, message string) error {
 			}
 
 		default:
-			parts := strings.Split(owner.Name, "-")
-			if len(parts) > 0 {
-				controllerName := parts[0]
+			// 记录事件
+			EventRecorder().Eventf(
+				pod,
+				corev1.EventTypeNormal,
+				reason,
+				message,
+			)
 
-				// 记录事件
-				EventRecorder().Eventf(
-					pod,
-					corev1.EventTypeNormal,
-					reason,
-					message,
-				)
+			lg.Warn("Logged event for unknown controller", zap.String("kind", owner.Kind), zap.String("controller", owner.Name))
+			return nil
 
-				lg.Info("Logged event for unknown controller", zap.String("kind", owner.Kind), zap.String("controller", controllerName))
-				return nil
-			} else {
-				lg.Warn("Failed to split controller name", zap.String("kind", owner.Kind), zap.String("name", owner.Name))
-				return fmt.Errorf("failed to split %s name: %s", owner.Kind, owner.Name)
-			}
 		}
 	}
-
 	lg.Info("No suitable controller found in OwnerReferences")
 	return fmt.Errorf("no suitable controller found in OwnerReferences")
 }

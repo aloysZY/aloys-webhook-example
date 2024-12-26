@@ -12,10 +12,10 @@ import (
 var eventRecorder record.EventRecorder
 
 // InitializeEventRecorder 初始化 EventRecorder 并将其设置为全局变量
-func InitializeEventRecorder(clientset *kubernetes.Clientset) {
+func InitializeEventRecorder(clientSet *kubernetes.Clientset) {
 	// 创建一个新的event broadcaster
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartRecordingToSink(&v1.EventSinkImpl{Interface: clientset.CoreV1().Events("")})
+	broadcaster.StartRecordingToSink(&v1.EventSinkImpl{Interface: clientSet.CoreV1().Events("")})
 
 	// 获取 EventRecorder
 	eventRecorder = broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: "aloys-webhook"})

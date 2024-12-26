@@ -17,19 +17,19 @@ func GetClientSet() *kubernetes.Clientset {
 	lg := logger.WithName("GetClientSet")
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		lg.Warn("Failed to initialize InClusterConfig", zap.Error(err))
-		// 如果集群内配置失败，则尝试使用本地的 kubeconfig 文件
-		kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		lg.Debug("Failed to initialize InClusterConfig", zap.Error(err))
+		// 如果集群内配置失败，则尝试使用本地的 kubeConfig 文件
+		kubeConfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
 		if err != nil {
-			lg.Fatal("Failed to initialize clientset from local kubeconfig", zap.Error(err))
+			lg.Fatal("Failed to initialize clientSet from local kubeConfig", zap.Error(err))
 			return nil // 返回错误给调用者处理
 		}
 	}
 	// 根据配置信息创建client，client可以操作各种资源的CURD
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		lg.Fatal("Failed to initialize clientset", zap.Error(err))
+		lg.Fatal("Failed to initialize clientSet", zap.Error(err))
 		return nil // 返回错误给调用者处理
 	}
 	return clientSet

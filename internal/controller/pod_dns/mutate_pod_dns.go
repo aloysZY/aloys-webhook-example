@@ -47,7 +47,7 @@ func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRe
 
 		// 比较 spec 是否相同，如果是 status 更新则忽略
 		if reflect.DeepEqual(oldPod.Spec, pod.Spec) {
-			util.EventRecorder().Eventf(&pod, corev1.EventTypeNormal, "DeepEqual", "Ignoring status update for pod pod Namespace:%s,pod Name:%s", pod.Namespace, pod.Name)
+			util.EventRecorder().Eventf(&pod, corev1.EventTypeNormal, "DeepEqual", "Ignoring status update pod Namespace:%s,pod Name:%s", pod.Namespace, pod.Name)
 			lg.Info("Ignoring status update for pod", zap.String("pod Namespace", pod.Namespace), zap.String("pod Name", pod.Name))
 			return util.GeneratePatchAndResponse(&pod, nil, true, "", "")
 		}
@@ -94,7 +94,7 @@ func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRe
 
 	lg.Info("Mutated DNS configuration for pod",
 		zap.String("pod Namespace", pod.Namespace),
-		zap.String("pod Name", pod.Name), // 优先使用 pod.Name
+		zap.String("pod Name", pod.Name),                 // 优先使用 pod.Name
 		zap.String("pod GenerateName", pod.GenerateName)) // 如果 pod.Name 为空，则可以参考 GenerateName
 
 	// 	根据pod找到对应控制器添加事件信息

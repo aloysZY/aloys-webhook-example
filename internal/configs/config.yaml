@@ -1,0 +1,23 @@
+# config.yaml
+
+## TLS 证书文件路径
+#tls_cert_file: "/path/to/tls.crt"
+#
+## TLS 私钥文件路径
+#tls_private_key_file: "/path/to/tls.key"
+#
+## 日志级别 (debug, info, warn, error, dpanic, panic, fatal)
+#log_level: "info"
+log_level: "debug"
+#
+## Sidecar 容器镜像名称
+#sidecar_image: "my-sidecar-image:latest"
+#
+## Webhook 服务监听端口
+#webhook_bind_address: 9443
+#
+## Metrics 服务监听端口
+#metrics_bind_address: 8443
+
+# 是否启用 pprof 性能分析
+#enable_pprof: false

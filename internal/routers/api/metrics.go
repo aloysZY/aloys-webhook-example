@@ -1,8 +1,10 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"time"
 
 	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
@@ -11,7 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func MetricsStart(config configs.Configs) *http.Server {
+func MetricsStart() *http.Server {
+	cfg := configs.GetGlobalConfig()
 	lg := logger.WithName("metrics")
 
 	// 启动metrics服务器
@@ -19,10 +22,16 @@ func MetricsStart(config configs.Configs) *http.Server {
 	metricsMux := http.NewServeMux()
 	metricsMux.Handle("/metrics", promhttp.Handler())
 
+	// 添加pprof支持
+	if cfg.EnablePProf { // 假设有一个配置项来启用或禁用pprof
+		metricsMux.Handle("/debug/pprof/", http.DefaultServeMux)
+		lg.Info("pprof support enabled on /debug/pprof/")
+	}
+
 	// 简化健康检查和就绪检查的处理函数
 	handleCheck := func(w http.ResponseWriter, req *http.Request, endpoint string) {
 		startTime := time.Now()
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 		// 记录请求完成的日志
 		lg.Info(
 			"Request completed",
@@ -44,22 +53,22 @@ func MetricsStart(config configs.Configs) *http.Server {
 	})
 
 	metricsServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", configs.MetricsPort),
+		Addr:           fmt.Sprintf(":%d", cfg.MetricsPort),
 		Handler:        metricsMux,
-		TLSConfig:      configs.ConfigTLS(config),
+		TLSConfig:      configs.ConfigTLS(),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
 		IdleTimeout:    60 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1MB
 	}
 
-	lg.Info("Starting metrics server on port", zap.Int("port:", configs.MetricsPort))
+	lg.Info("Starting metrics server on port", zap.Int("port:", cfg.MetricsPort))
 
 	go func() {
 		defer lg.Info("Metrics server goroutine has exited")
 
 		err := metricsServer.ListenAndServeTLS("", "")
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			lg.Error("Failed to listen and serve metrics server:", zap.Error(err))
 			panic(err)
 		}

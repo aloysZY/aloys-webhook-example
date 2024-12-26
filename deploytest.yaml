@@ -55,7 +55,7 @@ metadata:
   namespace: aloys-webhook-system
 spec:
   ports:
-  - name: https
+  - name: metrics-service
     port: 8443
     protocol: TCP
     targetPort: 8443
@@ -72,7 +72,8 @@ metadata:
   namespace: aloys-webhook-system
 spec:
   ports:
-  - port: 9443
+  - name: webhook-service
+    port: 9443
     protocol: TCP
     targetPort: 9443
   selector:
@@ -201,7 +202,7 @@ spec:
   endpoints:
   - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
     path: /metrics
-    port: https
+    port: metrics-service
     scheme: https
     tlsConfig:
       insecureSkipVerify: true

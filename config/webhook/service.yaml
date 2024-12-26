@@ -11,5 +11,6 @@ spec:
     - port: 9443
       protocol: TCP
       targetPort: 9443
+      name: webhook-service
   selector:
     control-plane: controller-manager

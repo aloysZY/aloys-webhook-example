@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package back
 
 import (
@@ -92,7 +91,7 @@ func MutatePods(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 }
 
 func MutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
-	if configs.SidecarImage == "" {
+	if configs.GlobalConfig.SidecarImage == "" {
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
@@ -105,7 +104,7 @@ func MutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	shouldPatchPod := func(pod *corev1.Pod) bool {
 		return !hasContainer(pod.Spec.Containers, "webhook-template-added-sidecar")
 	}
-	return applyPodPatch(ar, shouldPatchPod, fmt.Sprintf(podsSidecarPatch, configs.SidecarImage))
+	return applyPodPatch(ar, shouldPatchPod, fmt.Sprintf(podsSidecarPatch, configs.GlobalConfig.SidecarImage))
 }
 
 func hasContainer(containers []corev1.Container, containerName string) bool {

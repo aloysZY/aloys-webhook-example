@@ -45,7 +45,7 @@ func Init(logLevel zapcore.Level) error {
 	// 确保在程序退出时同步日志
 	defer func() {
 		if initialized {
-			logger.Sync()
+			_ = logger.Sync()
 		}
 	}()
 

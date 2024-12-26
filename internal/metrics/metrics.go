@@ -51,16 +51,14 @@ func WithMetrics(next http.HandlerFunc) http.HandlerFunc {
 		start := time.Now()
 		rcw := &responseCaptureWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
-		// // 记录请求的基本信息
-		// lg.Infow(
-		// 	"Received incoming request",
-		// 	"method", req.Method,
-		// 	"url", req.URL.String(),
-		// 	"remoteAddr", req.RemoteAddr,
-		// 	"userAgent", req.UserAgent(),
-		// 	"path", path,
-		// )
-
+		// 记录请求的基本信息
+		lg.Debug("Received incoming request",
+			zap.String("method", req.Method),
+			zap.String("url", req.URL.String()),
+			zap.String("remoteAddr", req.RemoteAddr),
+			zap.String("userAgent", req.UserAgent()),
+			zap.String("path", path),
+		)
 		// 捕获并恢复任何 panic，以防止未处理的 panic 导致整个服务崩溃
 		defer func() {
 			if r := recover(); r != nil {

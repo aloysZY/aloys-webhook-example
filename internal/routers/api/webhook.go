@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,7 +13,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func WebhookStart(config configs.Configs) *http.Server {
+func WebhookStart() *http.Server {
+	cfg := configs.GetGlobalConfig()
 	lg := logger.WithName("webhook Start")
 
 	// 创建 HTTP 服务器多路复用器并注册处理函数
@@ -51,8 +53,8 @@ func WebhookStart(config configs.Configs) *http.Server {
 
 	// 创建并配置 HTTP 服务器
 	webhookServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", configs.WebhookPort),
-		TLSConfig:      configs.ConfigTLS(config),
+		Addr:           fmt.Sprintf(":%d", cfg.WebhookPort),
+		TLSConfig:      configs.ConfigTLS(),
 		Handler:        webhook,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
@@ -61,16 +63,16 @@ func WebhookStart(config configs.Configs) *http.Server {
 	}
 
 	lg.Info("Starting webhook server on port:",
-		zap.Int("port:", configs.WebhookPort))
+		zap.Int("port:", cfg.WebhookPort))
 
 	// 启动服务
 	go func() {
 		defer lg.Info("Webhook server goroutine has exited")
 		err := webhookServer.ListenAndServeTLS("", "")
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			lg.Error("Failed to listen and serve webhook server:", zap.Error(err))
 			panic(err)
-		} else if err == http.ErrServerClosed {
+		} else if errors.Is(err, http.ErrServerClosed) {
 			lg.Info("Webhook server closed gracefully")
 		}
 	}()
