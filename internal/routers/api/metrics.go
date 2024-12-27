@@ -9,12 +9,12 @@ import (
 
 	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
+	"github.com/aloys.zy/aloys-webhook-example/internal/tls"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
 func MetricsStart() *http.Server {
-	cfg := configs.GetGlobalConfig()
 	lg := logger.WithName("metrics")
 
 	// 启动metrics服务器
@@ -23,7 +23,7 @@ func MetricsStart() *http.Server {
 	metricsMux.Handle("/metrics", promhttp.Handler())
 
 	// 添加pprof支持
-	if cfg.EnablePProf { // 假设有一个配置项来启用或禁用pprof
+	if configs.GetGlobalConfig().Service.EnablePprof { // 假设有一个配置项来启用或禁用pprof
 		metricsMux.Handle("/debug/pprof/", http.DefaultServeMux)
 		lg.Info("pprof support enabled on /debug/pprof/")
 	}
@@ -53,16 +53,16 @@ func MetricsStart() *http.Server {
 	})
 
 	metricsServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", cfg.MetricsPort),
+		Addr:           fmt.Sprintf(":%d", configs.GetGlobalConfig().Service.MetricsBindAddress),
 		Handler:        metricsMux,
-		TLSConfig:      configs.ConfigTLS(),
+		TLSConfig:      tls.ConfigTLS(),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
 		IdleTimeout:    60 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1MB
 	}
 
-	lg.Info("Starting metrics server on port", zap.Int("port:", cfg.MetricsPort))
+	lg.Info("Starting metrics server on port", zap.Int("port:", configs.GetGlobalConfig().Service.MetricsBindAddress))
 
 	go func() {
 		defer lg.Info("Metrics server goroutine has exited")

@@ -2,7 +2,11 @@ package logger
 
 import (
 	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
 
+	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
 	"github.com/go-logr/zapr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -10,82 +14,106 @@ import (
 )
 
 var (
-	logger      *zap.Logger
-	initialized = false
+	lg atomic.Value // 使用 atomic.Value 来管理 lg
+	mu sync.Mutex   // 用于保护 Reconfigure 操作
 )
 
 // Init 初始化日志记录器，并设置日志级别
-func Init(logLevel zapcore.Level) error {
-	if initialized {
+func Init(cfg *configs.Configs) error {
+	if initialized() {
 		return nil // 如果已经初始化，则不再重复初始化
 	}
 
+	newLogger, err := initNewLogger(cfg)
+	if err != nil {
+		return err
+	}
+
+	setLogger(newLogger)
+	log.SetLogger(zapr.NewLogger(newLogger))
+
+	return nil
+}
+
+// Reconfigure 重新配置日志记录器
+func Reconfigure(cfg *configs.Configs) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	// 创建新的日志记录器
+	newLogger, err := initNewLogger(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to reinitialize lg: %v", err)
+	}
+
+	// 关闭旧的日志记录器
+	oldLogger := getOldLogger()
+	if oldLogger != nil {
+		oldLogger.Sync() // 同步旧的日志缓冲区
+	}
+
+	// 使用 atomic.Value 替换旧的 lg
+	setLogger(newLogger)
+
+	// 等待一段时间，确保所有 goroutine 都已经切换到新的 lg
+	time.Sleep(100 * time.Millisecond)
+
+	return nil
+}
+
+// initNewLogger 初始化新的日志记录器
+func initNewLogger(cfg *configs.Configs) (*zap.Logger, error) {
 	// 配置生产环境的日志记录器
 	config := zap.NewProductionConfig()
 	config.EncoderConfig.TimeKey = "timestamp"
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
+	logLevel, err := ParseLogLevel(cfg.Logger.LogLevel)
+	if err != nil {
+		zap.Error(err)
+		return nil, err
+	}
+
 	// 设置日志级别
 	config.Level = zap.NewAtomicLevelAt(logLevel)
 
-	var err error
-	logger, err = config.Build(
-		zap.AddCaller(),                   // 添加调用者信息（文件名和行号）
-		zap.AddStacktrace(zap.ErrorLevel), // 在 ErrorLevel 及以上级别添加堆栈跟踪
+	// 设置编码器
+	if cfg.Logger.Encoding == "json" {
+		config.Encoding = "json"
+	} else {
+		config.Encoding = "console"
+	}
+
+	// 获取写入器
+	writeSyncers := getWriteSyncers(cfg)
+
+	// 创建核心日志配置
+	core := zapcore.NewCore(
+		getEncoder(config),
+		zapcore.NewMultiWriteSyncer(writeSyncers...),
+		logLevel,
 	)
-	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %v", err)
-	}
 
-	initialized = true
-
-	// 设置 controller-runtime 的全局日志记录器
-	log.SetLogger(zapr.NewLogger(logger))
-
-	// 确保在程序退出时同步日志
-	defer func() {
-		if initialized {
-			_ = logger.Sync()
+	// 如果有错误输出路径，创建独立的核心日志配置
+	if len(cfg.Logger.ErrorOutputPaths) > 0 && cfg.Logger.Encoding == "json" {
+		errorWriteSyncers := getErrorWriteSyncers(cfg)
+		if len(errorWriteSyncers) > 0 {
+			errorCore := zapcore.NewCore(
+				getEncoder(config),
+				zapcore.NewMultiWriteSyncer(errorWriteSyncers...),
+				zap.ErrorLevel,
+			)
+			core = zapcore.NewTee(core, errorCore)
 		}
-	}()
-
-	return nil
-}
-
-// WithName 返回带有指定组件名称的日志记录器，符合 zap.Logger 接口
-func WithName(name string) *zap.Logger {
-	if !initialized {
-		panic("logger not initialized")
 	}
-	return logger.With(zap.String("component", name))
-}
 
-// ParseLogLevel 将字符串形式的日志级别解析为 zapcore.Level
-func ParseLogLevel(logLevelStr string) (zapcore.Level, error) {
-	switch logLevelStr {
-	case "debug":
-		return zap.DebugLevel, nil
-	case "info":
-		return zap.InfoLevel, nil
-	case "warn", "warning":
-		return zap.WarnLevel, nil
-	case "error":
-		return zap.ErrorLevel, nil
-	case "dpanic":
-		return zap.DPanicLevel, nil
-	case "panic":
-		return zap.PanicLevel, nil
-	case "fatal":
-		return zap.FatalLevel, nil
-	default:
-		return zap.InfoLevel, fmt.Errorf("invalid log level: %s", logLevelStr)
+	// 创建新的日志记录器
+	options := []zap.Option{
+		zap.AddCaller(),
+		zap.AddStacktrace(zap.ErrorLevel), // 为错误日志添加堆栈信息
 	}
-}
 
-// GetLogger 返回全局的 zap.Logger
-func GetLogger() *zap.Logger {
-	if !initialized {
-		panic("logger not initialized")
-	}
-	return logger
+	newLogger := zap.New(core, options...)
+
+	return newLogger, nil
 }

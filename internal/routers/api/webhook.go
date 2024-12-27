@@ -9,12 +9,11 @@ import (
 	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
 	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/metrics"
-	"github.com/aloys.zy/aloys-webhook-example/internal/routers"
+	"github.com/aloys.zy/aloys-webhook-example/internal/tls"
 	"go.uber.org/zap"
 )
 
 func WebhookStart() *http.Server {
-	cfg := configs.GetGlobalConfig()
 	lg := logger.WithName("webhook Start")
 
 	// 创建 HTTP 服务器多路复用器并注册处理函数
@@ -53,8 +52,8 @@ func WebhookStart() *http.Server {
 
 	// 创建并配置 HTTP 服务器
 	webhookServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", cfg.WebhookPort),
-		TLSConfig:      configs.ConfigTLS(),
+		Addr:           fmt.Sprintf(":%d", configs.GetGlobalConfig().Service.WebhookBindAddress),
+		TLSConfig:      tls.ConfigTLS(),
 		Handler:        webhook,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   15 * time.Second,
@@ -63,7 +62,7 @@ func WebhookStart() *http.Server {
 	}
 
 	lg.Info("Starting webhook server on port:",
-		zap.Int("port:", cfg.WebhookPort))
+		zap.Int("port:", configs.GetGlobalConfig().Service.WebhookBindAddress))
 
 	// 启动服务
 	go func() {
@@ -78,44 +77,4 @@ func WebhookStart() *http.Server {
 	}()
 
 	return webhookServer
-}
-
-// 辅助函数：根据名称获取对应的处理函数
-func getHandlerFuncByName(name string) http.HandlerFunc {
-	switch name {
-	case "ServeMutateCPUOversell":
-		return routers.ServeMutateCPUOversell
-	case "MutatePodDNSConfig":
-		return routers.MutatePodDNSConfig
-	case "ServeAlwaysAllowDelayFiveSeconds":
-		return routers.ServeAlwaysAllowDelayFiveSeconds
-	case "ServeAlwaysDeny":
-		return routers.ServeAlwaysDeny
-	case "ServeAddLabel":
-		return routers.ServeAddLabel
-	case "ServePods":
-		return routers.ServePods
-	case "ServeAttachingPods":
-		return routers.ServeAttachingPods
-	case "ServeMutatePods":
-		return routers.ServeMutatePods
-	case "ServeMutatePodsSidecar":
-		return routers.ServeMutatePodsSidecar
-	case "ServeConfigmaps":
-		return routers.ServeConfigmaps
-	case "ServeMutateConfigmaps":
-		return routers.ServeMutateConfigmaps
-	case "ServeCustomResource":
-		return routers.ServeCustomResource
-	case "ServeMutateCustomResource":
-		return routers.ServeMutateCustomResource
-	case "ServeCRD":
-		return routers.ServeCRD
-	// case "ServeValidatePodContainerLimit":
-	// 	return handlefunc.ServeValidatePodContainerLimit
-	default:
-		logger.WithName("webhook Start").Warn("Unknown handler name",
-			zap.String("name", name))
-		return nil
-	}
 }

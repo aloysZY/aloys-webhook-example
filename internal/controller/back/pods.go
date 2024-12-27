@@ -91,7 +91,7 @@ func MutatePods(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
 }
 
 func MutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
-	if configs.GlobalConfig.SidecarImage == "" {
+	if configs.GetGlobalConfig().Application.SidecarImage == "" {
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
@@ -104,7 +104,7 @@ func MutatePodsSidecar(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	shouldPatchPod := func(pod *corev1.Pod) bool {
 		return !hasContainer(pod.Spec.Containers, "webhook-template-added-sidecar")
 	}
-	return applyPodPatch(ar, shouldPatchPod, fmt.Sprintf(podsSidecarPatch, configs.GlobalConfig.SidecarImage))
+	return applyPodPatch(ar, shouldPatchPod, fmt.Sprintf(podsSidecarPatch, configs.GetGlobalConfig().Application.SidecarImage))
 }
 
 func hasContainer(containers []corev1.Container, containerName string) bool {
