@@ -35,7 +35,7 @@ func startServers(cfg *configs.Config) (metricsServer, webhookServer *http.Serve
 	// 启用 pprof 服务
 	if cfg.EnablePprof {
 		go func() {
-			log.Printf("Starting pprof server on :6060")
+			log.Printf("Starting pprof server on %s", cfg.PprofAddr)
 			err := http.ListenAndServe(fmt.Sprintf("%s", cfg.PprofAddr), nil)
 			if err != nil {
 				log.Fatalf("Failed to start pprof server: %v", err)
