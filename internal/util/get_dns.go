@@ -7,7 +7,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -22,9 +21,8 @@ func GetDNSIP() (string, string, error) {
 	var err error
 	mu.Do(func() {
 		// 只有在第一次调用时执行以下代码
-		clientSet := GetClientSet()
-		localDnsBindAddress, err = getLocalIPFromDaemonSet(clientSet)
-		coreDNSBindAddress, err = getCoreIPFromService(clientSet)
+		localDnsBindAddress, err = getLocalIPFromDaemonSet()
+		coreDNSBindAddress, err = getCoreIPFromService()
 		if err == nil {
 			initialized = true
 		}
@@ -38,7 +36,7 @@ func GetDNSIP() (string, string, error) {
 }
 
 // getLocalIPFromDaemonSet 获取 DaemonSet 中指定容器的 -localip 参数值
-func getLocalIPFromDaemonSet(clientSet *kubernetes.Clientset) (string, error) {
+func getLocalIPFromDaemonSet() (string, error) {
 	// 获取指定命名空间中的 DaemonSet
 	localDNSDS, err := clientSet.AppsV1().DaemonSets("kube-system").Get(context.TODO(), "node-local-dns", metav1.GetOptions{})
 	if err != nil {
@@ -62,7 +60,7 @@ func getLocalIPFromDaemonSet(clientSet *kubernetes.Clientset) (string, error) {
 }
 
 // getCoreIPFromService 获取coreNDs ip
-func getCoreIPFromService(clientSet *kubernetes.Clientset) (string, error) {
+func getCoreIPFromService() (string, error) {
 	// 获取 CoreDNS Service
 	coreDNSService, err := clientSet.CoreV1().Services("kube-system").Get(context.TODO(), "kube-dns", metav1.GetOptions{})
 	if err != nil {
