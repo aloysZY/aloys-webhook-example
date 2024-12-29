@@ -3,9 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/routers"
-	"go.uber.org/zap"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // 辅助函数：根据名称获取对应的处理函数
@@ -42,8 +41,7 @@ func getHandlerFuncByName(name string) http.HandlerFunc {
 	// case "ServeValidatePodContainerLimit":
 	// 	return handlefunc.ServeValidatePodContainerLimit
 	default:
-		logger.WithName("webhook Start").Warn("Unknown handler name",
-			zap.String("name", name))
+		ctrl.Log.WithName("webhook Start").V(1).Info("Unknown handler name", "name", name)
 		return nil
 	}
 }

@@ -3,7 +3,6 @@ package util
 import (
 	// "k8s.io/api/core/v1" // 包含 v1 API 对象
 	corev1 "k8s.io/api/core/v1" // 包含 v1 API 对象
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -12,7 +11,7 @@ import (
 var eventRecorder record.EventRecorder
 
 // InitializeEventRecorder 初始化 EventRecorder 并将其设置为全局变量
-func InitializeEventRecorder(clientSet *kubernetes.Clientset) {
+func InitializeEventRecorder() {
 	// 创建一个新的event broadcaster
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&v1.EventSinkImpl{Interface: clientSet.CoreV1().Events("")})

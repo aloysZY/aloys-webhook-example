@@ -6,10 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"go.uber.org/zap"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // 定义并注册自定义指标
@@ -44,7 +43,7 @@ func (w *responseCaptureWriter) WriteHeader(code int) {
 
 // WithMetrics 包装函数，用于更新自定义指标
 func WithMetrics(next http.HandlerFunc) http.HandlerFunc {
-	lg := logger.WithName("metrics") // 假设全局日志记录器已经初始化
+	setupLog := ctrl.Log.WithName("metrics")
 
 	return func(w http.ResponseWriter, req *http.Request) {
 		path := req.URL.Path
@@ -52,26 +51,25 @@ func WithMetrics(next http.HandlerFunc) http.HandlerFunc {
 		rcw := &responseCaptureWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
 		// 记录请求的基本信息
-		lg.Debug("Received incoming request",
-			zap.String("method", req.Method),
-			zap.String("url", req.URL.String()),
-			zap.String("remoteAddr", req.RemoteAddr),
-			zap.String("userAgent", req.UserAgent()),
-			zap.String("path", path),
+		setupLog.V(1).Info("Received incoming request",
+			"method", req.Method,
+			"url", req.URL.String(),
+			"remoteAddr", req.RemoteAddr,
+			"userAgent", req.UserAgent(),
+			"path", path,
 		)
 		// 捕获并恢复任何 panic，以防止未处理的 panic 导致整个服务崩溃
 		defer func() {
 			if r := recover(); r != nil {
-				lg.Error(
+				setupLog.Error(nil,
 					"Recovered from panic",
-					zap.Any("error", r),
-					zap.String("stacktrace", string(debug.Stack())), // 记录堆栈跟踪
-					zap.String("method", req.Method),
-					zap.String("url", req.URL.String()),
-					zap.String("remoteAddr", req.RemoteAddr),
-					zap.String("userAgent", req.UserAgent()),
-					zap.String("path", path),
-				)
+					"error", r,
+					"stacktrace", string(debug.Stack()), // 记录堆栈跟踪
+					"method", req.Method,
+					"url", req.URL.String(),
+					"remoteAddr", req.RemoteAddr,
+					"userAgent", req.UserAgent(),
+					"path", path)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -81,15 +79,15 @@ func WithMetrics(next http.HandlerFunc) http.HandlerFunc {
 			requestCounter.WithLabelValues(path, strconv.Itoa(rcw.statusCode)).Inc()
 
 			// 记录请求完成的日志
-			lg.Info(
+			setupLog.Info(
 				"Request completed",
-				zap.String("method", req.Method),
-				zap.String("url", req.URL.String()),
-				zap.String("remoteAddr", req.RemoteAddr),
-				zap.String("userAgent", req.UserAgent()),
-				zap.String("path", path),
-				zap.Int("status", rcw.statusCode),
-				zap.Float64("duration", duration),
+				"method", req.Method,
+				"url", req.URL.String(),
+				"remoteAddr", req.RemoteAddr,
+				"userAgent", req.UserAgent(),
+				"path", path,
+				"status", rcw.statusCode,
+				"duration", duration,
 			)
 		}()
 

@@ -3,26 +3,22 @@ package tls
 import (
 	"crypto/tls"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
-	"go.uber.org/zap"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func ConfigTLS() *tls.Config {
-	lg := logger.WithName("global.ConfigTLS")
+	setupLog := ctrl.Log.WithName("config-tls")
 
 	// Log the paths of the certificate and key files
-	lg.Debug("Loading TLS certificate and private key from files",
-		zap.String("CertFile", configs.GetGlobalConfig().Service.TLSCertFile),
-		zap.String("KeyFile", configs.GetGlobalConfig().Service.TLSPrivateKeyFile),
-	)
+	setupLog.V(1).Info("Loading TLS certificate and private key from files",
+		"CertFile", "./certs/tls.crt", "KeyFile", "./certs/tls.key")
 
 	// Load the X509 key pair
-	sCert, err := tls.LoadX509KeyPair(configs.GetGlobalConfig().Service.TLSCertFile, configs.GetGlobalConfig().Service.TLSPrivateKeyFile)
+	sCert, err := tls.LoadX509KeyPair("./certs/tls.crt", "./certs/tls.key")
 	if err != nil {
-		lg.Fatal("Failed to load TLS certificate and private key:", zap.Error(err))
+		setupLog.Error(err, "Failed to load TLS certificate and private key:")
 	}
-	lg.Info("TLS certificate and private key loaded successfully")
+	setupLog.Info("TLS certificate and private key loaded successfully")
 
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{sCert},
@@ -31,9 +27,7 @@ func ConfigTLS() *tls.Config {
 	}
 
 	// Optionally log the resulting TLS configuration (excluding sensitive information)
-	lg.Debug("TLS configuration created successfully",
-		zap.Int("Certificates count:", len(tlsConfig.Certificates)),
-	)
+	setupLog.V(1).Info("TLS configuration created successfully", "Certificates count:", len(tlsConfig.Certificates))
 
 	return tlsConfig
 }

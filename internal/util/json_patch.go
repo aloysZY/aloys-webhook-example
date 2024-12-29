@@ -1,19 +1,18 @@
 package util
 
 import (
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
 	"github.com/mattbaird/jsonpatch"
-	"go.uber.org/zap"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // GeneratePatchAndResponse 生成 JSON Patch 并返回 AdmissionResponse
 func GeneratePatchAndResponse(originalObj, modifiedObj runtime.Object, allowed bool, warning, message string) *admissionv1.AdmissionResponse {
-	lg := logger.WithName("util.GeneratePatchAndResponse")
+	setupLog := ctrl.Log.WithName("util.GeneratePatchAndResponse")
 
 	if originalObj == nil || modifiedObj == nil {
 		return constructAdmissionResponse(allowed, nil, warning, message)
@@ -22,28 +21,28 @@ func GeneratePatchAndResponse(originalObj, modifiedObj runtime.Object, allowed b
 	// 序列化原始节点对象
 	originalNodeBytes, err := marshalObject(originalObj)
 	if err != nil {
-		lg.Error("failed to marshal originalNode to JSON: %v", zap.Error(err))
+		setupLog.Error(err, "failed to marshal originalNode to JSON")
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 序列化修改后的节点对象
 	modifiedNodeBytes, err := marshalObject(modifiedObj)
 	if err != nil {
-		lg.Error("failed to marshal modified node to JSON: %v", zap.Error(err))
+		setupLog.Error(err, "failed to marshal modified node to JSON")
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 生成 JSON Patch
 	patch, err := createJSONPatch(originalNodeBytes, modifiedNodeBytes)
 	if err != nil {
-		lg.Error("failed to create JSON patch: %v", zap.Error(err))
+		setupLog.Error(err, "failed to create JSON patch")
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 序列化 JSON Patch
 	patchBytes, err := marshalPatch(patch)
 	if err != nil {
-		lg.Error("failed to marshal JSON patch: %v", zap.Error(err))
+		setupLog.Error(err, "failed to marshal JSON patch")
 		return setting.ToV1AdmissionResponse(err)
 	}
 
