@@ -1,44 +1,84 @@
 package configs
 
-// GlobalConfig 全局配置实例
-var globalConfig *Configs
+import (
+	"flag"
+	"os"
+	"sync"
 
-// Configs 定义全局配置
-type Configs struct {
-	Service     *Service     `yaml:"Service" mapstructure:"Service"`
-	Logger      *Logger      `yaml:"Logger" mapstructure:"Logger"`
-	Application *Application `yaml:"Application" mapstructure:"Application"`
+	ubzap "go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+)
+
+type Config struct {
+	SidecarImage    string
+	PprofAddr       string
+	EnablePprof     bool
+	WebhookBindPort int
+	MetricsBindPort int
+
+	// 其他配置项
 }
 
-type Logger struct {
-	Encoding         string   `yaml:"log_encoding"mapstructure:"log_encoding"` // 日志编码格式（json 或 console）
-	LogLevel         string   `yaml:"log_level" mapstructure:"log_level"`
-	OutputPaths      []string `yaml:"log_output_paths"mapstructure:"log_output_paths"`             // 日志输出路径，可以是文件、标准输出等
-	ErrorOutputPaths []string `yaml:"log_error_output_paths"mapstructure:"log_error_output_paths"` // 错误日志输出路径
-	// 日志切割配置
-	MaxSize    int `yaml:"max_size" mapstructure:"max_size"`       // 单位 MB，最大文件大小
-	MaxBackups int `yaml:"max_backups" mapstructure:"max_backups"` // 保留的最大备份文件数量
-	MaxAge     int `yaml:"max_age" mapstructure:"max_age"`         // 保留的最大天数
-	// Compress   bool `yaml:"compress" mapstructure:"compress"`       // 是否压缩旧的日志文件
+var (
+	cfg  *Config
+	once sync.Once
+)
+
+// InitConfig 初始化配置结构体并解析命令行参数，非基础程序配置添加在这里
+func InitConfig() {
+	once.Do(func() {
+		// 创建一个新的Config实例
+		cfg = &Config{}
+
+		// 使用flag包解析命令行参数
+		flag.StringVar(&cfg.SidecarImage, "sidecar_image", "", "Docker image for the sidecar container.")
+		flag.BoolVar(&cfg.EnablePprof, "enable-pprof", false, "Enable pprof profiling")
+		flag.StringVar(&cfg.PprofAddr, "pprof-addr", "localhost:6060", "The address on which to expose the pprof handler")
+		flag.IntVar(&cfg.WebhookBindPort, "webhook_bind_address", 9443, "Secure port that the webhook-template listens on")
+		flag.IntVar(&cfg.MetricsBindPort, "metrics_bind_address", 8443, "Port that the metrics server listens on.")
+
+		// 定义自定义的 Zap 选项
+		opts := zap.Options{
+			Development:     false,                                   // 生产环境模式
+			Level:           ubzap.NewAtomicLevelAt(ubzap.InfoLevel), // 设置日志级别为 Info
+			StacktraceLevel: ubzap.ErrorLevel,                        // 只在 Error 级别及以上添加堆栈跟踪
+			Encoder: zapcore.NewJSONEncoder(zapcore.EncoderConfig{
+				TimeKey:        "ts",                           // 时间戳字段的键名
+				LevelKey:       "level",                        // 日志级别字段的键名
+				NameKey:        "logger",                       // 日志记录器名称字段的键名
+				CallerKey:      "caller",                       // 调用者信息字段的键名
+				MessageKey:     "msg",                          // 日志消息字段的键名
+				StacktraceKey:  "stacktrace",                   // 堆栈跟踪字段的键名
+				LineEnding:     zapcore.DefaultLineEnding,      // 每行日志的换行符默认是/n
+				EncodeLevel:    zapcore.LowercaseLevelEncoder,  // 小写日志级别
+				EncodeTime:     zapcore.RFC3339TimeEncoder,     // 时间戳的编码方式（RFC3339 格式）
+				EncodeDuration: zapcore.SecondsDurationEncoder, // 持续时间的编码方式（秒）
+				EncodeCaller:   zapcore.ShortCallerEncoder,     // 简短的调用者信息
+			}),
+			DestWriter: os.Stdout, // 输出到标准输出
+			ZapOpts: []ubzap.Option{
+				ubzap.AddCaller(), // 添加调用者信息
+			},
+		}
+
+		// 日志参数绑定到命令行
+		opts.BindFlags(flag.CommandLine)
+
+		// 解析命令行参数
+		flag.Parse()
+
+		// 应用自定义选项并设置全局日志记录器
+		ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	})
 }
 
-type Service struct {
-	WebhookBindAddress int    `yaml:"webhook_bind_address" mapstructure:"webhook_bind_address"`
-	MetricsBindAddress int    `yaml:"metrics_bind_address" mapstructure:"metrics_bind_address"`
-	TLSCertFile        string `yaml:"tls_cert_file"mapstructure:"tls_cert_file"`
-	TLSPrivateKeyFile  string `yaml:"tls_private_key_file"mapstructure:"tls_private_key_file"`
-	EnablePprof        bool   `yaml:"enable_pprof"mapstructure:"enable_pprof"`
-}
-
-type Application struct {
-	SidecarImage string `yaml:"sidecar_image"mapstructure:"sidecar_image"`
-}
-
-// GetGlobalConfig 提供一个函数来获取全局配置
-func GetGlobalConfig() *Configs {
-	return globalConfig
-}
-
-func InitGlobalConfig(cfg *Configs) {
-	globalConfig = cfg
+// GetConfig 返回全局配置实例
+func GetConfig() *Config {
+	if cfg == nil {
+		// 如果cfg未初始化，调用 InitConfig 进行初始化
+		InitConfig()
+	}
+	return cfg
 }

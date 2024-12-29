@@ -1,11 +1,10 @@
 package setting
 
 import (
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
-	"go.uber.org/zap"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1" // 确保导入 metav1 包
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // admitv1beta1Func handles a v1beta1 admission review.
@@ -31,15 +30,15 @@ func NewDelegateToV1AdmitHandler(f admitv1Func) AdmitHandler {
 // delegateV1beta1AdmitToV1 converts a v1beta1 AdmissionReview to v1, processes it with the provided v1 handler,
 // and then converts the response back to v1beta1.
 func delegateV1beta1AdmitToV1(f admitv1Func) admitv1beta1Func {
-	lg := logger.WithName("handlefunc.delegateV1beta1AdmitToV1")
+	setupLog := ctrl.Log.WithName("delegateV1beta1AdmitToV1")
 
 	return func(review v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-		lg.Debug("Received v1beta1 AdmissionReview", zap.Any("UID", review.Request.UID))
+		setupLog.Info("Received v1beta1 AdmissionReview", "UID", review.Request.UID)
 
 		// Convert v1beta1 request to v1
 		v1Req := ConvertAdmissionRequestToV1(review.Request)
 		if v1Req == nil {
-			lg.Error("Failed to convert v1beta1 AdmissionRequest to v1")
+			setupLog.V(1).Info("Failed to convert v1beta1 AdmissionRequest to v1")
 			return &v1beta1.AdmissionResponse{
 				UID:     review.Request.UID,
 				Allowed: false,
@@ -52,7 +51,7 @@ func delegateV1beta1AdmitToV1(f admitv1Func) admitv1beta1Func {
 		// Process the v1 request
 		v1Resp := f(admissionv1.AdmissionReview{Request: v1Req})
 		if v1Resp == nil {
-			lg.Error("v1 handler returned a nil AdmissionResponse")
+			setupLog.V(1).Info("v1 handler returned a nil AdmissionResponse")
 			return &v1beta1.AdmissionResponse{
 				UID:     review.Request.UID,
 				Allowed: false,
@@ -65,7 +64,7 @@ func delegateV1beta1AdmitToV1(f admitv1Func) admitv1beta1Func {
 		// Convert v1 response back to v1beta1
 		v1beta1Resp := ConvertAdmissionResponseToV1beta1(v1Resp)
 		if v1beta1Resp == nil {
-			lg.Error("Failed to convert v1 AdmissionResponse to v1beta1")
+			setupLog.V(1).Info("Failed to convert v1 AdmissionResponse to v1beta1")
 			return &v1beta1.AdmissionResponse{
 				UID:     review.Request.UID,
 				Allowed: false,
@@ -75,7 +74,7 @@ func delegateV1beta1AdmitToV1(f admitv1Func) admitv1beta1Func {
 			}
 		}
 
-		lg.Debug("Processed v1beta1 AdmissionReview successfully", zap.Any("UID", review.Request.UID))
+		setupLog.Info("Processed v1beta1 AdmissionReview successfully", "UID", review.Request.UID)
 		return v1beta1Resp
 	}
 }

@@ -5,19 +5,18 @@ import (
 	"io"
 	"net/http"
 	"runtime/debug"
-
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
+	
 	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
-	"go.uber.org/zap"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // serve handles the HTTP portion of a request prior to handing to an admit function.
 func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
-	lg := logger.WithName("server")
+	setupLog := ctrl.Log.WithName("server")
 
 	// // 记录请求的基本信息
 	// lg.Infow(
@@ -34,10 +33,8 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 		if data, err := io.ReadAll(r.Body); err == nil {
 			body = data
 		} else {
-			lg.Error(
-				"Failed to read request body",
-				zap.String("stacktrace", string(debug.Stack())),
-				zap.Error(err))
+			setupLog.Error(err,
+				"Failed to read request body", "stacktrace", string(debug.Stack()))
 			http.Error(w, "Failed to read request body", http.StatusBadRequest)
 			return
 		}
@@ -46,13 +43,13 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 	// 检查请求头中的 Content-Type 是否为 application/json。如果不是，记录错误日志并返回，不继续处理。
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		lg.Error(
+		setupLog.V(1).Info(
 			"Unsupported Content-Type",
-			zap.String("contentType", contentType),
-			zap.String("expectedContentType", "application/json"),
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()),
-			zap.String("remoteAddr", r.RemoteAddr),
+			"contentType", contentType,
+			"expectedContentType", "application/json",
+			"method", r.Method,
+			"url", r.URL.String(),
+			"remoteAddr", r.RemoteAddr,
 		)
 		http.Error(w, "Unsupported Content-Type: application/json required", http.StatusUnsupportedMediaType)
 		return
@@ -63,13 +60,12 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 	obj, gvk, err := deserializer.Decode(body, nil, nil)
 	if err != nil {
 		// 如果解码失败，记录错误日志并返回HTTP 400 Bad Request
-		lg.Error(
+		setupLog.Error(err,
 			"Failed to decode request",
-			zap.String("body", string(body)),
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()),
-			zap.String("remoteAddr", r.RemoteAddr),
-			zap.Error(err),
+			"body", string(body),
+			"method", r.Method,
+			"url", r.URL.String(),
+			"remoteAddr", r.RemoteAddr,
 		)
 		http.Error(w, fmt.Sprintf("Request could not be decoded: %v", err), http.StatusBadRequest)
 		return
@@ -82,13 +78,13 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 		// 将解码后的对象转换为 v1beta1.AdmissionReview 类型。
 		requestedAdmissionReview, ok := obj.(*v1beta1.AdmissionReview)
 		if !ok {
-			lg.Error(
+			setupLog.V(1).Info(
 				"Expected v1beta1.AdmissionReview but got different type",
-				zap.String("expectedType", "*admissionv1beta1.AdmissionReview"),
-				zap.String("actualType", fmt.Sprintf("%T", obj)),
-				zap.String("method", r.Method),
-				zap.String("url", r.URL.String()),
-				zap.String("remoteAddr", r.RemoteAddr),
+				"expectedType", "*admissionv1beta1.AdmissionReview",
+				"actualType", fmt.Sprintf("%T", obj),
+				"method", r.Method,
+				"url", r.URL.String(),
+				"remoteAddr", r.RemoteAddr,
 			)
 			http.Error(w, "Unexpected object type for v1beta1.AdmissionReview", http.StatusBadRequest)
 			return
@@ -105,13 +101,13 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 		// 将解码后的对象转换为 admissionv1.AdmissionReview 类型。
 		requestedAdmissionReview, ok := obj.(*admissionv1.AdmissionReview)
 		if !ok {
-			lg.Error(
+			setupLog.V(1).Info(
 				"Expected admissionv1.AdmissionReview but got different type",
-				zap.String("expectedType", "*admissionv1.AdmissionReview"),
-				zap.String("actualType", fmt.Sprintf("%T", obj)),
-				zap.String("method", r.Method),
-				zap.String("url", r.URL.String()),
-				zap.String("remoteAddr", r.RemoteAddr),
+				"expectedType", "*admissionv1.AdmissionReview",
+				"actualType", fmt.Sprintf("%T", obj),
+				"method", r.Method,
+				"url", r.URL.String(),
+				"remoteAddr", r.RemoteAddr,
 			)
 			http.Error(w, "Unexpected object type for admissionv1.AdmissionReview", http.StatusBadRequest)
 			return
@@ -126,12 +122,12 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 
 	default:
 		// 如果请求的 GroupVersionKind 不是 v1beta1 或 v1，则记录错误日志并返回HTTP 400 Bad Request
-		lg.Error(
+		setupLog.Info(
 			"Unsupported group version kind",
-			zap.Any("groupVersionKind", gvk),
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()),
-			zap.String("remoteAddr", r.RemoteAddr),
+			"groupVersionKind", gvk,
+			"method", r.Method,
+			"url", r.URL.String(),
+			"remoteAddr", r.RemoteAddr,
 		)
 		http.Error(w, fmt.Sprintf("Unsupported group version kind: %v", gvk), http.StatusBadRequest)
 		return
@@ -141,13 +137,11 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 	respBytes, err := json.Marshal(responseObj)
 	if err != nil {
 		// 如果序列化失败，记录错误日志并返回HTTP 500 Internal Server Error。
-		lg.Error(
-			"Failed to marshal response",
-			zap.Any("responseObject", responseObj),
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()),
-			zap.String("remoteAddr", r.RemoteAddr),
-			zap.Error(err),
+		setupLog.Error(err, "Failed to marshal response",
+			"responseObject", responseObj,
+			"method", r.Method,
+			"url", r.URL.String(),
+			"remoteAddr", r.RemoteAddr,
 		)
 		http.Error(w, "Failed to marshal response", http.StatusInternalServerError)
 		return
@@ -157,12 +151,10 @@ func serve(w http.ResponseWriter, r *http.Request, admit setting.AdmitHandler) {
 	w.Header().Set("Content-Type", "application/json")
 	// 将序列化后的JSON数据写入HTTP响应。
 	if _, err := w.Write(respBytes); err != nil {
-		lg.Error(
-			"Failed to write response",
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()),
-			zap.String("remoteAddr", r.RemoteAddr),
-			zap.Error(err),
+		setupLog.Error(err, "Failed to write response",
+			"method", r.Method,
+			"url", r.URL.String(),
+			"remoteAddr", r.RemoteAddr,
 		)
 	}
 }

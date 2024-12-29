@@ -7,17 +7,16 @@ import (
 	"time"
 
 	"github.com/aloys.zy/aloys-webhook-example/internal/configs"
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/metrics"
 	"github.com/aloys.zy/aloys-webhook-example/internal/tls"
-	"go.uber.org/zap"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func WebhookStart() *http.Server {
-	lg := logger.WithName("webhook Start")
+func WebhookStart(cfg *configs.Config) *http.Server {
+	setupLog := ctrl.Log.WithName("webhook Start")
 
 	// 创建 HTTP 服务器多路复用器并注册处理函数
-	lg.Debug("Creating HTTP server mux for webhook endpoints")
+	setupLog.V(1).Info("Creating HTTP server mux for webhook endpoints")
 	webhook := http.NewServeMux()
 
 	// 注册各个 webhook 处理函数，并包裹上 metrics 中间件
@@ -42,17 +41,17 @@ func WebhookStart() *http.Server {
 	for endpoint, handlerName := range endpoints {
 		handlerFunc := metrics.WithMetrics(getHandlerFuncByName(handlerName))
 		webhook.HandleFunc(endpoint, handlerFunc)
-		lg.Info(
+		setupLog.Info(
 			"Registered webhook endpoint",
-			zap.String("endpoint", endpoint),   // 键值对：endpoint
-			zap.String("handler", handlerName), // 键值对：handler
+			"endpoint", endpoint, // 键值对：endpoint
+			"handler", handlerName, // 键值对：handler
 		)
 
 	}
 
 	// 创建并配置 HTTP 服务器
 	webhookServer := &http.Server{
-		Addr:           fmt.Sprintf(":%d", configs.GetGlobalConfig().Service.WebhookBindAddress),
+		Addr:           fmt.Sprintf(":%d", cfg.WebhookBindPort),
 		TLSConfig:      tls.ConfigTLS(),
 		Handler:        webhook,
 		ReadTimeout:    10 * time.Second,
@@ -61,18 +60,17 @@ func WebhookStart() *http.Server {
 		MaxHeaderBytes: 1 << 20, // 1MB
 	}
 
-	lg.Info("Starting webhook server on port:",
-		zap.Int("port:", configs.GetGlobalConfig().Service.WebhookBindAddress))
+	setupLog.Info("Starting webhook server on port:", "port:", cfg.WebhookBindPort)
 
 	// 启动服务
 	go func() {
-		defer lg.Info("Webhook server goroutine has exited")
+		defer setupLog.Info("Webhook server goroutine has exited")
 		err := webhookServer.ListenAndServeTLS("", "")
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			lg.Error("Failed to listen and serve webhook server:", zap.Error(err))
+			setupLog.Error(err, "Failed to listen and serve webhook server:")
 			panic(err)
 		} else if errors.Is(err, http.ErrServerClosed) {
-			lg.Info("Webhook server closed gracefully")
+			setupLog.Info("Webhook server closed gracefully")
 		}
 	}()
 

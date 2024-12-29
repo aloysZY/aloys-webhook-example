@@ -5,27 +5,26 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/aloys.zy/aloys-webhook-example/internal/logger"
 	"github.com/aloys.zy/aloys-webhook-example/internal/setting"
 	"github.com/aloys.zy/aloys-webhook-example/internal/util"
-	"go.uber.org/zap"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // MutatePodDNSConfig 这是获取集群信息进行注入的方式
 func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionResponse {
-	lg := logger.WithName("MutatePodDNSConfig")
+	setupLog := ctrl.Log.WithName("MutatePodDNSConfig")
 
 	podResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "pods"}
 
 	// 检查请求是否针对 pod 资源
 	if ar.Request.Resource != podResource {
-		lg.Error("InvalidResource",
-			zap.Any("expected resource to be ", podResource),
-			zap.Any("got", ar.Request.Resource))
+		setupLog.Error(nil, "InvalidResource",
+			"expected resource to be ", podResource,
+			"got", ar.Request.Resource)
 		return util.GeneratePatchAndResponse(nil, nil, false, "", fmt.Sprintf("expected resource to be %s", podResource))
 	}
 
@@ -34,21 +33,21 @@ func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRe
 
 	// 解码新对象
 	if _, _, err := deserializer.Decode(ar.Request.Object.Raw, nil, &pod); err != nil {
-		lg.Error("Failed to decode new pod object", zap.Error(err))
+		setupLog.Error(err, "Failed to decode new pod object")
 		return setting.ToV1AdmissionResponse(err)
 	}
 
 	// 如果是 UPDATE 操作，解码旧对象
 	if ar.Request.Operation == admissionv1.Update {
 		if _, _, err := deserializer.Decode(ar.Request.OldObject.Raw, nil, &oldPod); err != nil {
-			lg.Error("Failed to decode old pod object", zap.Error(err))
+			setupLog.Error(err, "Failed to decode old pod object")
 			return setting.ToV1AdmissionResponse(err)
 		}
 
 		// 比较 spec 是否相同，如果是 status 更新则忽略
 		if reflect.DeepEqual(oldPod.Spec, pod.Spec) {
 			util.EventRecorder().Eventf(&pod, corev1.EventTypeNormal, "DeepEqual", "Ignoring status update pod Namespace:%s,pod Name:%s", pod.Namespace, pod.Name)
-			lg.Info("Ignoring status update for pod", zap.String("pod Namespace", pod.Namespace), zap.String("pod Name", pod.Name))
+			setupLog.Info("Ignoring status update for pod", "pod Namespace", pod.Namespace, "pod Name", pod.Name)
 			return util.GeneratePatchAndResponse(&pod, nil, true, "", "")
 		}
 	}
@@ -75,7 +74,7 @@ func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRe
 	localDnsBindAddress, coreDNSBindAddress, err := util.GetDNSIP()
 	if err != nil {
 		util.EventRecorder().Eventf(&pod, corev1.EventTypeWarning, "GetDNSIP", "Failed to get DNSIP addresses %v", err)
-		lg.Warn("Failed to get DNSIP addresses", zap.Error(err))
+		setupLog.Error(err, "Failed to get DNSIP addresses")
 		// return setting.ToV1AdmissionResponse(err)
 	}
 	// 要让kubelet 配置--cluster-dns 才能在pod中是 这个顺序，不然nameserver 10.96.0.10会在上面
@@ -92,13 +91,13 @@ func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRe
 	// 其实如果要是kubelet 配置--cluster-dns后，肯定会追加到pod.Spec.DNSConfig.Nameservers 配置里面，而且是第一个解析
 	pod.Spec.DNSConfig.Nameservers = nameservers
 
-	lg.Info("Mutated DNS configuration for pod",
-		zap.String("pod Namespace", pod.Namespace),
-		zap.String("pod Name", pod.Name),                 // 优先使用 pod.Name
-		zap.String("pod GenerateName", pod.GenerateName)) // 如果 pod.Name 为空，则可以参考 GenerateName
+	setupLog.Info("Mutated DNS configuration for pod",
+		"pod Namespace", pod.Namespace,
+		"pod Name", pod.Name, // 优先使用 pod.Name
+		"pod GenerateName", pod.GenerateName) // 如果 pod.Name 为空，则可以参考 GenerateName
 
 	// 	根据pod找到对应控制器添加事件信息
-	_ = util.GetControllerName(&pod, "Mutated DNS", "Mutated DNS configuration for pod")
+	err = util.GetControllerName(&pod, "Mutated DNS", "Mutated DNS configuration for pod")
 
 	return util.GeneratePatchAndResponse(originalPod, &pod, true, "", "")
 }
