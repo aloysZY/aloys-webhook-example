@@ -70,8 +70,8 @@ func MutateCPUOversell(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRes
 	}
 
 	// 更新 allocatable.cpu 和注解
-	node.Status.Allocatable[corev1.ResourceCPU] = *resource.NewMilliQuantity(newCPUValue, resource.DecimalSI)
-	updateInvalidLabel(&node, CPUOversell, "true", fmt.Sprintf("Allocatable CPU updated to %d cores, Annotation %s updated to 'true'.", newCPUValue/1000, CPUOversell))
+	node.Status.Allocatable[corev1.ResourceCPU] = *resource.NewMilliQuantity(newCPUValue*1000, resource.DecimalSI)
+	updateInvalidLabel(&node, CPUOversell, "true", fmt.Sprintf("Allocatable CPU updated to %d cores, Annotation %s updated to 'true'.", newCPUValue, CPUOversell))
 
 	// 生成 Patch 并返回，允许请求通过
 	return util.GeneratePatchAndResponse(originalNode, &node, true, "", "CPU oversell mutation applied")

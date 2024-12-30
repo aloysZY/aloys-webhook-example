@@ -97,8 +97,9 @@ func MutatePodDNSConfig(ar admissionv1.AdmissionReview) *admissionv1.AdmissionRe
 		"pod GenerateName", pod.GenerateName) // 如果 pod.Name 为空，则可以参考 GenerateName
 
 	// 	根据pod找到对应控制器添加事件信息
-	err = util.GetControllerName(&pod, "Mutated DNS", "Mutated DNS configuration for pod")
-
+	if err = util.GetControllerName(&pod, "Mutated DNS", "Mutated DNS configuration for pod"); err != nil {
+		setupLog.Error(err, "Failed to get controller name for pod")
+	}
 	return util.GeneratePatchAndResponse(originalPod, &pod, true, "", "")
 }
 
