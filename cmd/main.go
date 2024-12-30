@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	_ "net/http/pprof" // 导入 pprof 包，确保 pprof 路由被注册
 	"os"
@@ -32,13 +32,17 @@ func startServers(cfg *configs.Config) (metricsServer, webhookServer *http.Serve
 	if metricsServer == nil {
 		return nil, nil, fmt.Errorf("failed to start metrics server")
 	}
+
 	// 启用 pprof 服务
 	if cfg.EnablePprof {
 		go func() {
-			log.Printf("Starting pprof server on %s", cfg.PprofAddr)
+			defer setupLog.Info("Pprof server goroutine has exited")
 			err := http.ListenAndServe(fmt.Sprintf("%s", cfg.PprofAddr), nil)
-			if err != nil {
-				log.Fatalf("Failed to start pprof server: %v", err)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				setupLog.Error(err, "Failed to listen and serve Pprof server:")
+				panic(err)
+			} else if errors.Is(err, http.ErrServerClosed) {
+				setupLog.Info("Pprof server closed gracefully")
 			}
 		}()
 	}

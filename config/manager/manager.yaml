@@ -65,8 +65,8 @@ spec:
 #          - --health-probe-bind-address=:8081
           - --tls-cert-file=/certs/tls.crt
           - --tls-private-key-file=/certs/tls.key
-          - --webhook-bind-address=9443
-          - --log-level=debug
+#          - --webhook-bind-address=9443
+#          - --log-level=debug
         image: controller:latest
         name: manager
         securityContext:

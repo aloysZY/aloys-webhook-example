@@ -105,8 +105,6 @@ spec:
         - --metrics-bind-address=8443
         - --tls-cert-file=/certs/tls.crt
         - --tls-private-key-file=/certs/tls.key
-        - --webhook-bind-address=9443
-        - --log-level=debug
         command:
         - /manager
         image: controller:latest
@@ -114,7 +112,6 @@ spec:
           httpGet:
             path: /healthz
             port: metrics-server
-            scheme: HTTPS
           initialDelaySeconds: 15
           periodSeconds: 20
         name: manager
@@ -129,7 +126,6 @@ spec:
           httpGet:
             path: /readyz
             port: metrics-server
-            scheme: HTTPS
           initialDelaySeconds: 5
           periodSeconds: 10
         resources:
