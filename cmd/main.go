@@ -15,7 +15,7 @@ import (
 	"github.com/aloys.zy/aloys-webhook-example/internal/client"
 	"github.com/aloys.zy/aloys-webhook-example/internal/event"
 	"github.com/aloys.zy/aloys-webhook-example/logger"
-	api "github.com/aloys.zy/aloys-webhook-example/service"
+	"github.com/aloys.zy/aloys-webhook-example/service"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -104,12 +104,12 @@ func bindFlags(cmd *cobra.Command) {
 
 // 启动服务
 func startServers(cfg *configs.Configs) (metricsServer, webhookServer *http.Server, err error) {
-	metricsServer = api.MetricsStart()
+	metricsServer = service.MetricsStart()
 	if metricsServer == nil {
 		return nil, nil, fmt.Errorf("failed to start metrics server")
 	}
 
-	webhookServer = api.WebhookStart()
+	webhookServer = service.WebhookStart()
 	if webhookServer == nil {
 		return nil, nil, fmt.Errorf("failed to start webhook server")
 	}
