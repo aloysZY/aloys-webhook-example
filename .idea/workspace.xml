@@ -5,18 +5,72 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9348293f-05fd-483d-b995-53bdc47f7d1a" name="更改" comment="git">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/aloys-webhook-example.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/aloys-webhook-example.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.air.conf" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/certs/tls.crt" beforeDir="false" afterPath="$PROJECT_DIR$/certs/tls.crt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/certs/tls.key" beforeDir="false" afterPath="$PROJECT_DIR$/certs/tls.key" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/manager/manager.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/manager/manager.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploytest.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/deploytest.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/controller-gen" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/controller-gen-v0.15.0" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/kustomize" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/kustomize-v5.4.2" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/certs/tls.crt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/certs/tls.key" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/cmd/main.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/certmanager/certificate.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/certmanager/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/certmanager/kustomizeconfig.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/default/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/default/manager_metrics_patch.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/default/manager_webhook_patch.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/default/metrics_service.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/dev/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/manager/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/manager/manager.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/prometheus/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/prometheus/monitor.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/rbac/cpu_oversell/cpu-oversell.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/rbac/cpu_oversell/cpu-oversell_role_binding.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/rbac/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/rbac/service_account.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/samples/1.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/samples/cpu_oversell.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/samples/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/webhook/cpu_oversell/cpu_oversell.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/webhook/kustomization.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/webhook/kustomizeconfig.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/webhook/pod_dns/pod_dns.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/webhook/service.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploypro.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploytest.yaml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/controller/cpu_oversell/cpu_oversell.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/controller/cpu_oversell/cpu_oversell.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/controller/pod_dns/mutate_pod_dns.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/controller/pod_dns/mutate_pod_dns.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/configs/configs.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/addlabel.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/addlabel_test.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/alwaysallow.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/alwaysdeny.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/configmap.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/crd.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/customresource.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/back/pods.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/cpu_oversell/cpu_oversell.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/pod_dns/init_pod_dns.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/controller/pod_dns/mutate_pod_dns.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/metrics/metrics.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/routers/api/func_name.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/routers/api/metrics.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/routers/api/webhook.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/routers/handlefunc.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/routers/server.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/setting/admission.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/setting/convert.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/setting/scheme.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/tls/tls.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/util/client_set.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/util/event_recorder.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/util/get_controller_name.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/util/get_dns.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/util/json_patch.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/internal/util/update_node_annotation.go" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,23 +102,22 @@
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/aloysZY/aloys-webhook-example.git&quot;,
-    &quot;accountId&quot;: &quot;e2fe9365-4610-426b-85a6-bb5de14ecfd2&quot;
+    &quot;accountId&quot;: &quot;c47c6fa4-eaa7-40c3-84ce-a993bfa0d996&quot;
   }
 }</component>
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="true" />
   </component>
   <component name="KubernetesApiPersistence">{}</component>
-  <component name="KubernetesApiProvider"><![CDATA[{
-  "configuredContexts": [
+  <component name="KubernetesApiProvider">{
+  &quot;configuredContexts&quot;: [
     {
-      "name": "kind-kind",
-      "kubeConfigUrl": "file:///Users/aloys/.kube/config",
-      "currentNamespace": "aloys-webhook-system"
+      &quot;name&quot;: &quot;kind-kind&quot;,
+      &quot;kubeConfigUrl&quot;: &quot;file:///Users/aloys/.kube/config&quot;
     }
   ],
-  "isMigrated": true
-}]]></component>
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
 }</component>
@@ -86,26 +139,42 @@
     "git-widget-placeholder": "develop",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/aloys/Documents/Go/code/src/github.com/aloysZY/MyOperatorProjects/aloys-webhook-example",
+    "last_opened_file_path": "/Users/aloys/Documents/Go/code/src/github.com/aloysZY/MyOperatorProjects/aloys-webhook-example/internal/util",
     "node.js.detected.package.eslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "go.vgo"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/internal/util" />
+      <recent name="$PROJECT_DIR$/tls" />
+      <recent name="$PROJECT_DIR$/internal" />
+      <recent name="$PROJECT_DIR$/service" />
+      <recent name="$PROJECT_DIR$/routers" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/internal/setting" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/internal/util" />
+      <recent name="$PROJECT_DIR$/cmd" />
+      <recent name="$PROJECT_DIR$/pkg" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="go build main.go" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="aloys-webhook-example" />
       <working_directory value="$PROJECT_DIR$" />
-      <parameters value="--enable-pprof=true" />
       <kind value="FILE" />
-      <package value="github.com/aloysZY/MyOperatorProjects/aloys-webhook-example" />
+      <package value="github.com/aloys.zy/aloys-webhook-example" />
       <directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/cmd/main.go" />
       <method v="2" />
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go 构建.go build main.go" />
         <item itemvalue="Go 构建.go build main.go" />
       </list>
     </recent_temporary>
@@ -131,21 +200,5 @@
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/internal/controller/pod_dns/mutate_pod_dns.go</url>
-          <line>18</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/internal/controller/cpu_oversell/cpu_oversell.go</url>
-          <line>73</line>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
